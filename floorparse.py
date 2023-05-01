@@ -12,7 +12,7 @@ class FloorParser:
         parses a txt floor
         '''
         grid = []
-
+        
         for row in floor.split('\n'):
             if not row: continue
             sqs = row.split(';')

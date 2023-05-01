@@ -110,6 +110,7 @@ class FireSim:
             # unreachable
             return float('inf')
 
+        # for each location, we do breath first search to find the nearest safe zone (distF) and the nearest fire zone (distS).
         for loc in graph:
             graph[loc]['distF'] = bfs('F', loc)
             graph[loc]['distS'] = bfs('S', loc)
@@ -130,6 +131,7 @@ class FireSim:
         bottleneck_locs = []
         fire_locs = []
 
+        # get lists of fire locations, bottleneck locations and people
         r, c = 0, 0
         for loc, attrs in self.graph.items():
             r = max(r, loc[0])
@@ -139,12 +141,15 @@ class FireSim:
             elif attrs['F']: fire_locs += [loc]
 
         assert len(av_locs) > 0, 'ERR: no people placement locations in input'
+        
+        # initialise all people
         for i in range(self.numpeople):
             p = Person(i, self.rate_generator(),
                        self.strategy_generator(),
                        self.location_sampler(av_locs))
             self.people += [p]
 
+        # initialise bottlenecks
         for loc in bottleneck_locs:
             b = Bottleneck(loc)
             self.bottlenecks[loc] = b
@@ -183,9 +188,11 @@ class FireSim:
             if(personLeaving != None):
                 self.sim.sched(self.update_person, personLeaving.id, offset=0)
 
+        # stop if the simulation is over
         if self.numsafe + self.numdead >= self.numpeople:
             return
 
+        # check if the simulation is overtime, if not, update the bottlenecks
         if self.maxtime and self.sim.now >= self.maxtime:
             return
         else:
@@ -257,6 +264,8 @@ class FireSim:
             return
 
         p = self.people[person_ix]
+
+        # check if the person is in fire, if so, then count them as dead
         if self.graph[p.loc]['F'] or not p.alive:
             p.alive = False
             self.numdead += 1
@@ -265,6 +274,8 @@ class FireSim:
                                                                   self.sim.now,
                                                                   p.id, p.loc))
             return
+        
+        # check if the person made it out safely, if so, update some stats
         if p.safe:
             self.numsafe += 1
             p.exit_time = self.sim.now
@@ -278,8 +289,9 @@ class FireSim:
         loc = p.loc
         square = self.graph[loc]
         nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
-
         target = p.move(nbrs)
+
+        # if there is no target location, then consider the person dead
         if not target:
             p.alive = False
             self.numdead += 1
@@ -288,6 +300,8 @@ class FireSim:
                                                                    self.sim.now,
                                                                    p.id, p.loc))
             return
+        
+        # get the target square, and handle walking, going into a bottleneck, or going into fire.
         square = self.graph[target]
         if square['B']:
             b = self.bottlenecks[target]
@@ -331,7 +345,7 @@ class FireSim:
         #updates fire initially
         if spread_fire:
             self.sim.sched(self.update_fire,
-                           offset=1)#len(self.graph)/max(1, len(self.fires)))
+                           offset=1) #len(self.graph)/max(1, len(self.fires)))
         else:
             print('INFO\t', 'fire won\'t spread around!')
         self.sim.sched(self.update_bottlenecks, offset=self.bottleneck_delay)

@@ -45,9 +45,13 @@ class Person:
 
         return: tuple, location the agent decided to move to
         '''
+        # decide safe neighbours
         nbrs = [(loc, attrs) for loc, attrs in nbrs
                 if not(attrs['F'] or attrs['W'])]
+        
         if not nbrs: return None
+
+        # find the neighbour that is the shortest distance from the door
         loc, attrs = min(nbrs, key=lambda tup: tup[1]['distS'])
         # print('Person {} at {} is moving to {}'.format(self.id, self.loc, loc))
         # print('Person {} is {} away from safe'.format(self.id, attrs['distS']))
