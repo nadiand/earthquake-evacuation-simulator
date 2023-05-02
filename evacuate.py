@@ -26,6 +26,7 @@ except ImportError:
 from person import Person
 from bottleneck import Bottleneck
 from floorparse import FloorParser
+import numpy as np
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
@@ -420,7 +421,7 @@ def main():
     print('commandline arguments:', args, '\n')
 
     # set up random streams
-    streams = [Generator(PCG64(args.random_state, i)) for i in range(5)]
+    streams = [np.random.Generator(PCG64(args.random_state, i)) for i in range(5)]
     loc_strm, strat_strm, rate_strm, pax_strm, fire_strm = streams
 
     location_sampler = loc_strm.choice # used to make initial placement of pax
