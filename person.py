@@ -48,11 +48,17 @@ class Person:
         # decide safe neighbours
         nbrs = [(loc, attrs) for loc, attrs in nbrs
                 if not(attrs['F'] or attrs['W'])]
-        
+        #TODO: have a chance of adding a damaged / risky cell into the neighbours depending on scaredness, (e.g. risky: 30%, damaged: 5%)
+        #TODO: graves cannot be neighbours
+
         if not nbrs: return None
 
         # find the neighbour that is the shortest distance from the door
         loc, attrs = min(nbrs, key=lambda tup: tup[1]['distS'])
+
+        #TODO: strategy: follow other people
+        #TODO: strategy: move away from danger
+
         # print('Person {} at {} is moving to {}'.format(self.id, self.loc, loc))
         # print('Person {} is {} away from safe'.format(self.id, attrs['distS']))
         self.loc = loc
