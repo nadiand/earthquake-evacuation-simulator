@@ -13,7 +13,7 @@ class Person:
     strategy = None # probability with which agent picks closes exit
     loc = None, None # variable tracking this agent's location (xy coordinates)
 
-    alive = True # TODO get rid of this variable? we don't really need this
+    alive = True 
     safe = False # mark safe once successfully exited. helps track how many
                  # people still need to finish
 
@@ -48,8 +48,8 @@ class Person:
         # decide safe neighbours
         nbrs = [(loc, attrs) for loc, attrs in nbrs
                 if not(attrs['F'] or attrs['W'])]
-        #TODO: have a chance of adding a damaged / risky cell into the neighbours depending on scaredness, (e.g. risky: 30%, damaged: 5%)
-        #TODO: graves cannot be neighbours
+        #TODO nadia: have a chance of adding a damaged / risky cell into the neighbours depending on scaredness, (e.g. risky: 30%, damaged: 5%)
+        #TODO nadia: graves cannot be neighbours
 
         if not nbrs: return None
 

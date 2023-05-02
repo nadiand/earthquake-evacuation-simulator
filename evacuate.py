@@ -153,7 +153,7 @@ class FireSim:
                        self.strategy_generator(),
                        self.location_sampler(av_locs))
             self.people += [p]
-        #TODO: sample locations from anywhere that is not a wall, and also not safe
+        #TODO megha: sample locations from anywhere that is not a wall, and also not safe
 
         # initialise bottlenecks
         for loc in bottleneck_locs:
@@ -231,8 +231,7 @@ class FireSim:
             else:
                 self.graph[neighbour].update({'R': True})
 
-        #TODO: bigger chance to choose a risky cell over a normal cell
-        #TODO: what to do when we choose a safe space?
+        #TODO nadia: bigger chance to choose a risky cell over a normal cell
     
     def update(self):
         if self.numsafe + self.numdead >= self.numpeople:
@@ -345,9 +344,9 @@ class FireSim:
                                                                   self.sim.now,
                                                                   p.id, p.loc))
             return
-        #TODO: when a grave appears on top of a person, then count them as dead
-        #TODO: when a person is in risky cell, reduce rate by 10%
-        #TODO: when a person is in a damaged cell, reduce rate by 30%
+        #TODO leah: when a grave appears on top of a person, then count them as dead
+        #TODO leah: when a person is in risky cell, reduce rate by 10%
+        #TODO leah: when a person is in a damaged cell, reduce rate by 30%
         
         # check if the person made it out safely, if so, update some stats
         if p.safe:
