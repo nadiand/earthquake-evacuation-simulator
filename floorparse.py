@@ -28,7 +28,7 @@ class FloorParser:
         for i in range(R):
             for j in range(C):
                 attrs = grid[i][j]
-                graph[(i,j)].update({att:int(att in attrs) for att in 'WSBFNP'})
+                graph[(i,j)].update({att:int(att in attrs) for att in 'WSBFNPRGD'})
 
                 for off in {-1, 1}:
                     if 0 <= i+off < R:
@@ -55,7 +55,7 @@ class FloorParser:
             for c_ in range(c):
                 sq = graph[(r_, c_)]
                 # this =
-                att = ','.join([a for a in sq if a in 'BNSFWP' and sq[a]])
+                att = ','.join([a for a in sq if a in 'WSBFNPRGD' and sq[a]])
                 s += '{:>4}'.format(att)
             s += '\n'
 

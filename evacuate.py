@@ -44,6 +44,8 @@ class FireSim:
 
     bottlenecks = dict()
     fires = set()
+    graves = set()
+    risky = set()
     people = []
 
     exit_times = []
@@ -131,6 +133,7 @@ class FireSim:
         av_locs = []
         bottleneck_locs = []
         fire_locs = []
+        risky_locs = []
 
         # get lists of fire locations, bottleneck locations and people
         r, c = 0, 0
@@ -140,6 +143,7 @@ class FireSim:
             if attrs['P']: av_locs += [loc]
             elif attrs['B']: bottleneck_locs += [loc]
             elif attrs['F']: fire_locs += [loc]
+            elif attrs['R']: risky_locs += [loc]
 
         assert len(av_locs) > 0, 'ERR: no people placement locations in input'
         
@@ -149,12 +153,16 @@ class FireSim:
                        self.strategy_generator(),
                        self.location_sampler(av_locs))
             self.people += [p]
+            #TODO: sample locations from anywhere that is not a wall, and also not safe
 
         # initialise bottlenecks
         for loc in bottleneck_locs:
             b = Bottleneck(loc)
             self.bottlenecks[loc] = b
+
+        # update the fire locations
         self.fires.update(set(fire_locs))
+        self.risky.update(set(risky_locs))
 
         self.r, self.c = r+1, c+1
 
@@ -200,6 +208,65 @@ class FireSim:
             self.sim.sched(self.update_bottlenecks, 
                            offset=self.bottleneck_delay)
 
+    def update_grave(self):
+        '''
+        Makes G (grave) locations randomly appear
+        '''
+        randcol = np.random.randint(0, self.c)
+        randrow = np.random.randint(0, self.r)
+
+        # set the random square to grave and set all other values to false
+        self.graph[(randrow, randcol)].update({'G': True})
+        self.graves.add(((randrow, randcol), self.sim.now))
+        self.graph[(randrow, randcol)].update({'R': False, 'D': False, 'N': False})
+
+        # turn all neigbours to risky
+        for neighbour in self.graph[(randrow, randcol)]['nbrs']:
+            if self.graph[neighbour]['R']:
+                self.graph[neighbour].update({'D': True})
+            elif self.graph[neighbour]['W']:
+                self.graph[neighbour].update({'R': True})
+            elif self.graph[neighbour]['G']:
+                pass
+            else:
+                self.graph[neighbour].update({'R': True})
+
+        #TODO: bigger chance to choose a risky cell over a normal cell
+        #TODO: what to do when we choose a safe space?
+    
+    def update(self):
+        if self.numsafe + self.numdead >= self.numpeople:
+            print('INFO:', 'people no longer moving, so stopping updating the debris')
+            return
+        if self.maxtime and self.sim.now >= self.maxtime:
+            return
+
+        # chance of 0.1 for a grave to form
+        if np.random.uniform(0,1) < 0.05:
+            self.update_grave()
+
+        # update graves turning into damaged
+        new_graves = set()
+        for loc, time in self.graves:
+            print(loc, time, self.sim.now, len(self.graves))
+            if (time + 2) <= self.sim.now:
+                self.graph[loc].update({'D': True, 'G': False})
+            else:
+                new_graves.add((loc, time))
+        self.graves = new_graves
+
+        # risky cells become damaged with probability
+        if np.random.uniform(0,1) < 0.1:
+            loc = random.sample(self.risky, 1)[0]
+            self.graph[loc].update({'D': True, 'R': False})
+
+        self.precompute()
+        rt = self.fire_rate
+        self.sim.sched(self.update,
+                       offset=len(self.graph)/max(1, len(self.risky))**rt)
+
+        self.visualize(self.animation_delay/max(1, len(self.risky))**rt)
+
 
 
     def update_fire(self):
@@ -215,6 +282,9 @@ class FireSim:
         fire stops spreading once it's everywhere, or when all the people have
         stopped moving (when all are dead or safe, not moving)
         '''
+
+        # print(self.graph)
+
         if self.numsafe + self.numdead >= self.numpeople:
             print('INFO:', 'people no longer moving, so stopping fire spread')
             return
@@ -245,12 +315,12 @@ class FireSim:
         self.graph[choice]['F'] = 1
         self.fires.add(choice)
 
-        self.precompute()
-        rt = self.fire_rate
-        self.sim.sched(self.update_fire,
-                       offset=len(self.graph)/max(1, len(self.fires))**rt)
+        # self.precompute()
+        # rt = self.fire_rate
+        # self.sim.sched(self.update_fire,
+        #                offset=len(self.graph)/max(1, len(self.fires))**rt)
 
-        self.visualize(self.animation_delay/max(1, len(self.fires))**rt)
+        # self.visualize(self.animation_delay/max(1, len(self.fires))**rt)
 
         return choice
 
@@ -326,6 +396,7 @@ class FireSim:
 
         # self.sim.show_calendar()
 
+    
 
     def simulate(self, maxtime=None, spread_fire=False, gui=False):
         '''
@@ -345,8 +416,10 @@ class FireSim:
 
         #updates fire initially
         if spread_fire:
-            self.sim.sched(self.update_fire,
-                           offset=1) #len(self.graph)/max(1, len(self.fires)))
+            self.sim.sched(self.update,
+                           offset=1)
+            # self.sim.sched(self.update_fire,
+            #                offset=1) #len(self.graph)/max(1, len(self.fires)))
         else:
             print('INFO\t', 'fire won\'t spread around!')
         self.sim.sched(self.update_bottlenecks, offset=self.bottleneck_delay)

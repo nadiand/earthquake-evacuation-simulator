@@ -19,8 +19,8 @@ class Plotter:
 
         # create discrete colormap
         cmap = colors.ListedColormap(['lightblue', 'black', 'red',
-                                      'lightgreen', 'darkblue', '#520000'])
-        bounds = [-.5, .5, 1.5, 2.5, 3.5, 4.5, 5.5]
+                                      'lightgreen', 'darkblue', '#520000', 'pink', 'orange', 'purple'])
+        bounds = [-.5, .5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]
         norm = colors.BoundaryNorm(bounds, cmap.N)
 
         plt.imshow(gdata, cmap=cmap, norm=norm)
@@ -49,7 +49,7 @@ class Plotter:
 
         # an arbitrary assignment of integers for each of the attributes for our
         # colormap
-        attrmap = {'N': 0, 'W': 1, 'F': 2, 'S': 3, 'B': 4}
+        attrmap = {'N': 0, 'W': 1, 'F': 2, 'S': 3, 'B': 4, 'G': 6, 'D': 7, 'R': 8}
 
         # detect rows and columns
         r, c = 0, 0
@@ -61,11 +61,15 @@ class Plotter:
         gdata = np.zeros(shape=(r, c))
 
         for loc, attrs in graph.items():
-            for att in 'SWBF':
+            for att in 'SWBFGRD':
                 if att not in attrs: continue
                 if attrs[att]:
                     gdata[loc] = attrmap[att]
-                    if att == 'W' and attrs['F']:
+                    if att == 'W' and attrs['R']:
+                        gdata[loc] = 5
+                    if att == 'W' and attrs['D']:
+                        gdata[loc] = 5
+                    if att == 'W' and attrs['G']:
                         gdata[loc] = 5
                     break
 
