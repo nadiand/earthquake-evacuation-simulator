@@ -212,8 +212,13 @@ class FireSim:
         '''
         Makes G (grave) locations randomly appear
         '''
-        randcol = np.random.randint(0, self.c)
-        randrow = np.random.randint(0, self.r)
+        if np.random.uniform(0,1) < 0.5:
+            randcol = np.random.randint(0, self.c)
+            randrow = np.random.randint(0, self.r)
+        else:
+            loc = random.sample(self.risky, 1)[0]
+            randcol = loc[0]
+            randrow = loc[1]
 
         # set the random square to grave and set all other values to false
         self.graph[(randrow, randcol)].update({'G': True})
