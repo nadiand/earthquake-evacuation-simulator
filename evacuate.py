@@ -241,7 +241,7 @@ class FireSim:
             return
 
         # chance of 0.1 for a grave to form
-        if np.random.uniform(0,1) < 0.05:
+        if np.random.uniform(0,1) < 0.3:
             self.update_grave()
 
         # update graves turning into damaged
@@ -255,7 +255,7 @@ class FireSim:
         self.graves = new_graves
 
         # risky cells become damaged with probability
-        if np.random.uniform(0,1) < 0.1:
+        if np.random.uniform(0,1) < 0.4:
             loc = random.sample(self.risky, 1)[0]
             self.graph[loc].update({'D': True, 'R': False})
 
@@ -344,10 +344,36 @@ class FireSim:
                                                                   self.sim.now,
                                                                   p.id, p.loc))
             return
-        #TODO leah: when a grave appears on top of a person, then count them as dead
-        #TODO leah: when a person is in risky cell, reduce rate by 10%
-        #TODO leah: when a person is in a damaged cell, reduce rate by 30%
+    
+        # when a grave appears on top of a person, then count them as dead
+        if self.graph[p.loc]['G'] or not p.alive:
+            p.alive = False
+            self.numdead += 1
+            if self.verbose:
+                print('{:>6.2f}\tPerson {:>3} at {} died from falling debris'.format(
+                                                                  self.sim.now,
+                                                                  p.id, p.loc))
+            return
         
+        # when a person is in risky cell, reduce rate by 5%
+        if self.graph[p.loc]['R']:
+            p.rate *= 0.95
+
+        # when a person is in damaged cell, reduce rate by 20%
+        if self.graph[p.loc]['D']:
+            p.rate *= 0.8
+
+        # when a persons rate drops below 0.4 they die
+        if p.rate < 0.4:
+            p.alive = False
+            self.numdead += 1
+            if self.verbose:
+                print('{:>6.2f}\tPerson {:>3} at {} died due to injury'.format(
+                                                                  self.sim.now,
+                                                                  p.id, p.loc))
+            return
+        
+
         # check if the person made it out safely, if so, update some stats
         if p.safe:
             self.numsafe += 1
