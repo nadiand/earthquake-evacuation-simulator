@@ -212,13 +212,15 @@ class FireSim:
         '''
         Makes G (grave) locations randomly appear
         '''
-        if np.random.uniform(0,1) < 0.5:
-            randcol = np.random.randint(0, self.c)
-            randrow = np.random.randint(0, self.r)
-        else:
+
+        if len(self.risky) > 0 and np.random.uniform(0,1) < 0.5:
             loc = random.sample(self.risky, 1)[0]
             randcol = loc[0]
             randrow = loc[1]
+        else:
+            randcol = np.random.randint(0, self.c)
+            randrow = np.random.randint(0, self.r)
+            
 
         # set the random square to grave and set all other values to false
         self.graph[(randrow, randcol)].update({'G': True})
@@ -246,7 +248,7 @@ class FireSim:
             return
 
         # chance of 0.1 for a grave to form
-        if np.random.uniform(0,1) < 0.05:
+        if np.random.uniform(0,1) < 0.5:
             self.update_grave()
 
         # update graves turning into damaged
@@ -260,8 +262,9 @@ class FireSim:
         self.graves = new_graves
 
         # risky cells become damaged with probability
-        if np.random.uniform(0,1) < 0.1:
+        if np.random.uniform(0,1) < 0.6 and len(self.risky) > 0:
             loc = random.sample(self.risky, 1)[0]
+            print(loc)
             self.graph[loc].update({'D': True, 'R': False})
 
         self.precompute()

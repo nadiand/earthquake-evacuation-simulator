@@ -54,7 +54,7 @@ class Person:
 
         neighbors = [] #replace every nbrs after this with neighobors TODO
         for loc, attrs in nbrs:
-            if attrs['N']:
+            if attrs['N'] or attrs['B'] or attrs['S']:
                 neighbors.append((loc,attrs))
             if attrs['R']:
                 # scared people will choose R with 50/50 chance
