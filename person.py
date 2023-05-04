@@ -78,17 +78,20 @@ class Person:
         nbrs.sort(key=lambda tup: tup[1]['distS'])
         ind = 0
         loc, attrs = nbrs[ind] # or nbrs[ind][0], im sorry i cant debug :(
-        while (attrs['D'] or attrs['R']): 
+        while (attrs['D'] or attrs['R']):
             # if the best location is damaged, rethink
-            if attrs['D']:
-                # scared people will choose R with 30% chance
-                if self.scaredness and np.random.uniform(0,1) < 0.3:
+            if attrs['R']:
+                # scared people will choose R with 70% chance
+                if self.scaredness and np.random.uniform(0,1) < 0.7:
+                    nbrs.append((loc,attrs))
                     break
-                # non scared people will choose R with 80% chance
-                elif (not self.scaredness) and np.random.uniform(0,1) < 0.7:
+                # non scared people will choose R with 90% chance
+                elif (not self.scaredness) and np.random.uniform(0,1) < 0.9:
+                    nbrs.append((loc,attrs))
                     break
             # if the best location is risky, scared people rethink (choose to continue with 50/50 chance)
-            if attrs['R'] and self.scaredness and np.random.uniform(0,1) < 0.5:
+            if attrs['D'] and (not self.scaredness) and np.random.uniform(0,1) < 0.5:
+                nbrs.append((loc,attrs))
                 break
             # if the ifs didn't happen, the current location is bad, get the next one
             ind += 1
