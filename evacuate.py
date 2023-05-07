@@ -130,7 +130,7 @@ class FireSim:
         '''
         self.precompute()
 
-        av_locs = []
+        
         bottleneck_locs = []
         fire_locs = []
         risky_locs = []
@@ -140,18 +140,24 @@ class FireSim:
         for loc, attrs in self.graph.items():
             r = max(r, loc[0])
             c = max(c, loc[1])
-            if attrs['P']: av_locs += [loc]
-            elif attrs['B']: bottleneck_locs += [loc]
+            
+            if attrs['B']: bottleneck_locs += [loc]
             elif attrs['F']: fire_locs += [loc]
             elif attrs['R']: risky_locs += [loc]
 
-        assert len(av_locs) > 0, 'ERR: no people placement locations in input'
         
         # initialise all people
         for i in range(self.numpeople):
+            while True:
+                # sample a random location that is not a wall nor a safe location
+                loc = random.randint(0, r-1), random.randint(0, c-1)
+                if loc not in self.graph or self.graph[loc]['W'] == 1 or self.graph[loc]['S'] == 1:
+                    continue
+                break
+
             p = Person(i, self.rate_generator(),
                        self.strategy_generator(),
-                       self.location_sampler(av_locs))
+                       loc)
             self.people += [p]
         #TODO megha: sample locations from anywhere that is not a wall, and also not safe
 
@@ -168,8 +174,8 @@ class FireSim:
 
         print(
               '='*79,
-              'initialized a {}x{} floor with {} people in {} locations'.format(
-                    self.r, self.c, len(self.people), len(av_locs)
+              'initialized a {}x{} floor with {} people'.format(
+                    self.r, self.c, len(self.people)
                   ),
               'initialized {} bottleneck(s)'.format(len(self.bottlenecks)),
               'detected {} fire zone(s)'.format(len([loc for loc in self.graph
