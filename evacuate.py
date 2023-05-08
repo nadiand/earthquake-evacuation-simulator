@@ -148,18 +148,15 @@ class FireSim:
         
         # initialise all people
         for i in range(self.numpeople):
-            while True:
+            loc = random.randint(0, r-1), random.randint(0, c-1)
+            while loc not in self.graph or self.graph[loc]['W'] == 1 or self.graph[loc]['S'] == 1:
                 # sample a random location that is not a wall nor a safe location
                 loc = random.randint(0, r-1), random.randint(0, c-1)
-                if loc not in self.graph or self.graph[loc]['W'] == 1 or self.graph[loc]['S'] == 1:
-                    continue
-                break
 
             p = Person(i, self.rate_generator(),
                        self.strategy_generator(),
                        loc)
             self.people += [p]
-        #TODO megha: sample locations from anywhere that is not a wall, and also not safe
 
         # initialise bottlenecks
         for loc in bottleneck_locs:
