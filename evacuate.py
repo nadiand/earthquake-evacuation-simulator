@@ -479,19 +479,32 @@ class FireSim:
         # find how many people are injured
         numinjured = len([1 for i in self.people if i.injured])
         numdead = self.numpeople-self.numsafe-self.nummoving
+        numdiedinjury = len([1 for i in self.people if (not i.alive) and i.rate > 0])
+        numdied = len([1 for i in self.people if (not i.alive) and i.rate == 0])
+        avg_rate = sum([p.rate for p in self.people if p.alive])/len([p.rate for p in self.people if p.alive])
 
         printstats('total # people', self.numpeople)
-        printstats('# people safe', self.numsafe)
-        printstats('# people dead', numdead)
-        printstats('# people gravely injured', numinjured-numdead)
         print()
-        #TODO: track how many people are safe, but have a rate below some value
+        printstats('# people safe', self.numsafe)
+        printstats('# people gravely injured', numinjured-numdead)
+        printstats('average rate of survivors', avg_rate)
+
+        print()
+
+        printstats('# people dead', numdead)
+        printstats('# people died from injuries', numdiedinjury)
+        printstats('# people died from falling debris', numdied)
+        print()
+        
         # printstats('total simulation time', '{:.3f}'.format(self.sim.now))
         if self.avg_exit:
             printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
         else:
             printstats('average time to safe', 'NA')
         print()
+        print("Id\tsafe\tinjured\trate\tstrat\tscaredness")
+        for p in self.people:
+            print(p.id, "\t", round(p.exit_time, 2), "\t", p.injured, "\t", round(p.rate, 2), "\t", round(p.strategy, 2), "\t", p.scaredness)
 
         # print(self.parser.tostr(self.graph))
         self.visualize(4)
@@ -539,9 +552,7 @@ def main():
 
     location_sampler = loc_strm.choice # used to make initial placement of pax
     strategy_generator = lambda: strat_strm.uniform(.5, 1) # used to pick move
-    rate_generator = lambda: max(.1, abs(rate_strm.normal(1, .1))) # used to
-                                                                   # decide
-                                                                   # strategies
+    rate_generator = lambda: rate_strm.uniform(.9, 1.1)
     person_mover = lambda: pax_strm.uniform() #
     fire_mover = lambda a: fire_strm.choice(a) #
 
