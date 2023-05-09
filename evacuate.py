@@ -495,7 +495,7 @@ class FireSim:
         printstats('# people died from injuries', numdiedinjury)
         printstats('# people died from falling debris', numdied)
         print()
-        
+        print('INDIVIDUALS')
         # printstats('total simulation time', '{:.3f}'.format(self.sim.now))
         if self.avg_exit:
             printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
