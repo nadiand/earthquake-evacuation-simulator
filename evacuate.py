@@ -94,7 +94,7 @@ class FireSim:
         graph = self.graph
 
         def bfs(target, pos):
-            if graph[pos]['W']: return float('inf')
+            if graph[pos]['W'] or graph[pos]['G']: return float('inf')
             q = [(pos, 0)]
             visited = set()
             while q:
@@ -102,8 +102,9 @@ class FireSim:
                 if node in visited: continue
                 visited.add(node)
 
+                #TODO: figure out how to take dangerous tiles into account for pathfinding
                 node = graph[node]
-                if node['W'] or node['F']: continue
+                if node['W'] or node['G']: continue
                 if node[target]: return dist
 
                 for n in node['nbrs']:
@@ -145,6 +146,7 @@ class FireSim:
             elif attrs['F']: fire_locs += [loc]
             elif attrs['R']: risky_locs += [loc]
 
+
         
         # initialise all people
         for i in range(self.numpeople):
@@ -153,9 +155,12 @@ class FireSim:
                 # sample a random location that is not a wall nor a safe location
                 loc = random.randint(0, r-1), random.randint(0, c-1)
 
+            # initilase boldness
+            scaredness = random.randint(0,1)
+
             p = Person(i, self.rate_generator(),
                        self.strategy_generator(),
-                       loc)
+                       loc, scaredness=scaredness)
             self.people += [p]
 
         # initialise bottlenecks
@@ -240,8 +245,6 @@ class FireSim:
                 pass
             else:
                 self.graph[neighbour].update({'R': True})
-
-        #TODO nadia: bigger chance to choose a risky cell over a normal cell
     
     def update(self):
         if self.numsafe + self.numdead >= self.numpeople:
@@ -251,7 +254,7 @@ class FireSim:
             return
 
         # chance of 0.1 for a grave to form
-        if np.random.uniform(0,1) < 0.5:
+        if np.random.uniform(0,1) < 0.8:
             self.update_grave()
 
         # update graves turning into damaged

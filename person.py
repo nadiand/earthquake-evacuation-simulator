@@ -49,36 +49,13 @@ class Person:
         # decide safe neighbours
         nbrs = [(loc, attrs) for loc, attrs in nbrs
                 if not(attrs['G'] or attrs['W'])]
-        #TODO nadia: have a chance of adding a damaged / risky cell into the neighbours depending on scaredness, (e.g. risky: 30%, damaged: 5%)
-        #TODO nadia: graves cannot be neighbours
-
-        # neighbors = [] 
-        # for loc, attrs in nbrs:
-        #     if attrs['N'] or attrs['B'] or attrs['S']:
-        #         neighbors.append((loc,attrs))
-        #     if attrs['R']:
-        #         # scared people will choose R with 50/50 chance
-        #         if self.scaredness and np.random.uniform(0,1) < 0.5:
-        #             neighbors.append((loc,attrs))
-        #         # non scared people will always consider R as a neighbor
-        #         elif not self.scaredness:
-        #             neighbors.append((loc,attrs))
-        #     if attrs['D']:
-        #         # scared people will choose R with 30% chance
-        #         if self.scaredness and np.random.uniform(0,1) < 0.3:
-        #             neighbors.append((loc,attrs))
-        #         # non scared people will choose R with 80% chance
-        #         elif (not self.scaredness) and np.random.uniform(0,1) < 0.7:
-        #             neighbors.append((loc,attrs))
-
         if not nbrs: return None
 
         # find the neighbour that is the shortest distance from the door
-        # loc, attrs = min(nbrs, key=lambda tup: tup[1]['distS'])
         nbrs.sort(key=lambda tup: tup[1]['distS'])
         ind = 0
-        loc, attrs = nbrs[ind] # or nbrs[ind][0], im sorry i cant debug :(
-        while (attrs['D'] or attrs['R']):
+        loc, attrs = nbrs[ind]
+        while ((attrs['D'] or attrs['R']) and len(nbrs) > 0):
             # if the best location is damaged, rethink
             if attrs['R']:
                 # scared people will choose R with 70% chance
@@ -95,7 +72,7 @@ class Person:
                 break
             # if the ifs didn't happen, the current location is bad, get the next one
             ind += 1
-            loc, attrs = nbrs[ind] # or nbrs[ind][0], im sorry i cant debug :(
+            loc, attrs = nbrs[ind]
 
 
         #TODO: strategy: follow other people
@@ -106,7 +83,5 @@ class Person:
         self.loc = loc
         if attrs['S']:
             self.safe = True
-        elif attrs['F']:
-            self.alive = False
 
         return loc
