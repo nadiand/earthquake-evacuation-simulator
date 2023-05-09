@@ -16,6 +16,7 @@ class Person:
     alive = True 
     safe = False # mark safe once successfully exited. helps track how many
                  # people still need to finish
+    injured = False
 
     exit_time = 0 # time it took this agent to get to the safe zone from its
                   # starting point
@@ -43,23 +44,23 @@ class Person:
         loc, attrs = nbrs[ind]
         while ((attrs['D'] or attrs['R']) and len(nbrs) > 0):
             # if the best location is damaged, rethink
-            if attrs['R']:
+            if attributes['R']:
                 # scared people will choose R with 70% chance
                 if self.scaredness and np.random.uniform(0,1) < 0.7:
-                    nbrs.append((loc,attrs))
+                    loc = location
                     break
                 # non scared people will choose R with 90% chance
                 elif (not self.scaredness) and np.random.uniform(0,1) < 0.9:
-                    nbrs.append((loc,attrs))
+                    loc = location
                     break
             # if the best location is risky, scared people rethink (choose to continue with 50/50 chance)
-            if attrs['D'] and (not self.scaredness) and np.random.uniform(0,1) < 0.5:
-                nbrs.append((loc,attrs))
+            if attributes['D'] and (not self.scaredness) and np.random.uniform(0,1) < 0.5:
+                loc = location
                 break
             # if the ifs didn't happen, the current location is bad, get the next one
-            ind += 1
-            loc, attrs = nbrs[ind]
-        return loc, attrs
+        if loc is None:
+            return self.loc
+        return loc
     
     def followPeople(self, nbrs):
         ind = 0
@@ -80,10 +81,10 @@ class Person:
                 if not(attrs['G'] or attrs['W'])]
         if not nbrs: return None
 
-        if self.strategy is "closest exit":
-            loc, attrs = self.closestExit(nbrs)
+        if self.strategy > 0:
+            loc = self.closestExit(nbrs)
         else:
-            loc, attrs = self.followPeople(nbrs)
+            loc = self.followPeople(nbrs)
 
 
 
@@ -93,7 +94,7 @@ class Person:
         # print('Person {} at {} is moving to {}'.format(self.id, self.loc, loc))
         # print('Person {} is {} away from safe'.format(self.id, attrs['distS']))
         self.loc = loc
-        if attrs['S']:
-            self.safe = True
+        # if attrs['S']:
+        #     self.safe = True
 
         return loc

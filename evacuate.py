@@ -253,7 +253,7 @@ class FireSim:
             return
 
         # chance of 0.1 for a grave to form
-        if np.random.uniform(0,1) < 0.8:
+        if np.random.uniform(0,1) < 0.7:
             self.update_grave()
 
         # update graves turning into damaged
@@ -344,19 +344,14 @@ class FireSim:
 
         p = self.people[person_ix]
 
-        # check if the person is in fire, if so, then count them as dead
-        if self.graph[p.loc]['F'] or not p.alive:
-            p.alive = False
-            self.numdead += 1
-            if self.verbose:
-                print('{:>6.2f}\tPerson {:>3} at {} could not make it'.format(
-                                                                  self.sim.now,
-                                                                  p.id, p.loc))
-            return
+        # check if the person is safe
+        if self.graph[p.loc]['S']:
+            p.safe = True
     
         # when a grave appears on top of a person, then count them as dead
         if self.graph[p.loc]['G'] or not p.alive:
             p.alive = False
+            p.rate = 0
             self.numdead += 1
             if self.verbose:
                 print('{:>6.2f}\tPerson {:>3} at {} died from falling debris'.format(
@@ -372,6 +367,10 @@ class FireSim:
         if self.graph[p.loc]['D']:
             p.rate *= 0.8
 
+        # if rate drops below 0.6 they are considered as injured
+        if p.rate < 0.8:
+            p.injured = True
+
         # when a persons rate drops below 0.4 they die
         if p.rate < 0.4:
             p.alive = False
@@ -382,7 +381,6 @@ class FireSim:
                                                                   p.id, p.loc))
             return
         
-
         # check if the person made it out safely, if so, update some stats
         if p.safe:
             self.numsafe += 1
@@ -478,11 +476,16 @@ class FireSim:
             print('\t',
                   (desc+' ').ljust(30, '.') + (' '+str(obj)).rjust(30, '.'))
 
+        # find how many people are injured
+        numinjured = len([1 for i in self.people if i.injured])
+        numdead = self.numpeople-self.numsafe-self.nummoving
+
         printstats('total # people', self.numpeople)
         printstats('# people safe', self.numsafe)
-        printstats('# people dead', self.numpeople-self.numsafe-self.nummoving)
-        printstats('# people gravely injured', self.nummoving)
+        printstats('# people dead', numdead)
+        printstats('# people gravely injured', numinjured-numdead)
         print()
+        #TODO: track how many people are safe, but have a rate below some value
         # printstats('total simulation time', '{:.3f}'.format(self.sim.now))
         if self.avg_exit:
             printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
