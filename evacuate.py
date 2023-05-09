@@ -114,7 +114,7 @@ class FireSim:
             # unreachable
             return float('inf')
 
-        # for each location, we do breath first search to find the nearest safe zone (distF) and the nearest fire zone (distS).
+        # for each location, we do breath first search to find the nearest safe zone (distS) and the nearest fire zone (distF).
         for loc in graph:
             graph[loc]['distF'] = bfs('F', loc)
             graph[loc]['distS'] = bfs('S', loc)
@@ -200,7 +200,6 @@ class FireSim:
         '''
 
         for key in self.bottlenecks:
-            #print(key, self.bottlenecks[key])
             personLeaving = self.bottlenecks[key].exitBottleNeck()
             if(personLeaving != None):
                 self.sim.sched(self.update_person, personLeaving.id, offset=0)
@@ -221,7 +220,7 @@ class FireSim:
         Makes G (grave) locations randomly appear
         '''
 
-        if len(self.risky) > 0 and np.random.uniform(0,1) < 0.5:
+        if len(self.risky) > 0 and np.random.uniform(0,1) < 0.3:
             loc = random.sample(self.risky, 1)[0]
             randcol = loc[0]
             randrow = loc[1]
@@ -260,7 +259,6 @@ class FireSim:
         # update graves turning into damaged
         new_graves = set()
         for loc, time in self.graves:
-            print(loc, time, self.sim.now, len(self.graves))
             if (time + 2) <= self.sim.now:
                 self.graph[loc].update({'D': True, 'G': False})
             else:
@@ -270,7 +268,6 @@ class FireSim:
         # risky cells become damaged with probability
         if np.random.uniform(0,1) < 0.6 and len(self.risky) > 0:
             loc = random.sample(self.risky, 1)[0]
-            print(loc)
             self.graph[loc].update({'D': True, 'R': False})
 
         self.precompute()
@@ -295,8 +292,6 @@ class FireSim:
         fire stops spreading once it's everywhere, or when all the people have
         stopped moving (when all are dead or safe, not moving)
         '''
-
-        # print(self.graph)
 
         if self.numsafe + self.numdead >= self.numpeople:
             print('INFO:', 'people no longer moving, so stopping fire spread')

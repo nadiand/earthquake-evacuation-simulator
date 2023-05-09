@@ -36,21 +36,7 @@ class Person:
         self.loc = tuple(loc)
         self.scaredness = scaredness
 
-    def move(self, nbrs, rv=None):
-        '''
-        when this person has finished their current movement, we must schedule
-        the next one
-        ---
-        graph (dict): a dictionary-like graph storing the floor plan according
-                      to our specification
-
-        return: tuple, location the agent decided to move to
-        '''
-        # decide safe neighbours
-        nbrs = [(loc, attrs) for loc, attrs in nbrs
-                if not(attrs['G'] or attrs['W'])]
-        if not nbrs: return None
-
+    def closestExit(self, nbrs):
         # find the neighbour that is the shortest distance from the door
         nbrs.sort(key=lambda tup: tup[1]['distS'])
         ind = 0
@@ -73,6 +59,32 @@ class Person:
             # if the ifs didn't happen, the current location is bad, get the next one
             ind += 1
             loc, attrs = nbrs[ind]
+        return loc, attrs
+    
+    def followPeople(self, nbrs):
+        ind = 0
+        loc, attrs = nbrs[ind]
+
+    def move(self, nbrs, rv=None):
+        '''
+        when this person has finished their current movement, we must schedule
+        the next one
+        ---
+        graph (dict): a dictionary-like graph storing the floor plan according
+                      to our specification
+
+        return: tuple, location the agent decided to move to
+        '''
+        # decide safe neighbours
+        nbrs = [(loc, attrs) for loc, attrs in nbrs
+                if not(attrs['G'] or attrs['W'])]
+        if not nbrs: return None
+
+        if self.strategy is "closest exit":
+            loc, attrs = self.closestExit(nbrs)
+        else:
+            loc, attrs = self.followPeople(nbrs)
+
 
 
         #TODO: strategy: follow other people
