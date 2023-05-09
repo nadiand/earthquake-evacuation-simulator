@@ -502,9 +502,9 @@ class FireSim:
         else:
             printstats('average time to safe', 'NA')
         print()
-        print("Id\tsafe\tinjured\trate\tstrat\tscaredness")
+        print("Id\tsafe\tinjured\tstartR\trate\tstrat\tscaredness")
         for p in self.people:
-            print(p.id, "\t", round(p.exit_time, 2), "\t", p.injured, "\t", round(p.rate, 2), "\t", round(p.strategy, 2), "\t", p.scaredness)
+            print(p.id, "\t", round(p.exit_time, 2), "\t", p.injured, "\t", round(p.starting_rate, 2), "\t", round(p.rate, 2), "\t", round(p.strategy, 2), "\t", p.scaredness)
 
         # print(self.parser.tostr(self.graph))
         self.visualize(4)
