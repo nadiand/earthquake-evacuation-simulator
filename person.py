@@ -10,6 +10,7 @@ import numpy as np
 class Person:
     id = None
     rate = None # how long it takes to move one unit distance
+    starting_rate = None
     strategy = None # probability with which agent picks closes exit
     loc = None, None # variable tracking this agent's location (xy coordinates)
 
@@ -36,13 +37,17 @@ class Person:
         self.strategy = strategy
         self.loc = tuple(loc)
         self.scaredness = scaredness
+        self.starting_rate = rate
 
     def closestExit(self, nbrs):
         # find the neighbour that is the shortest distance from the door
         nbrs.sort(key=lambda tup: tup[1]['distS'])
         ind = 0
         loc, attrs = nbrs[ind]
-        while ((attrs['D'] or attrs['R']) and len(nbrs) > 0):
+        for location, attributes in nbrs:
+            if not (attributes['D'] or attributes['R']):
+                loc = location
+                break
             # if the best location is damaged, rethink
             if attributes['R']:
                 # scared people will choose R with 70% chance
@@ -57,7 +62,6 @@ class Person:
             if attributes['D'] and (not self.scaredness) and np.random.uniform(0,1) < 0.5:
                 loc = location
                 break
-            # if the ifs didn't happen, the current location is bad, get the next one
         if loc is None:
             return self.loc
         return loc
