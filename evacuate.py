@@ -157,9 +157,11 @@ class FireSim:
 
             # initilase boldness
             scaredness = random.randint(0,1)
+            # initialize strategy
+            strategy = random.randint(0,1)
 
             p = Person(i, self.rate_generator(),
-                       self.strategy_generator(),
+                       strategy,
                        loc, scaredness=scaredness)
             self.people += [p]
 
@@ -392,10 +394,7 @@ class FireSim:
                                                                p.id))
             return
 
-        loc = p.loc
-        square = self.graph[loc]
-        nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
-        target = p.move(nbrs)
+        target = p.move(self.graph, self.people)
 
         # if there is no target location, then consider the person dead
         if not target:

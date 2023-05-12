@@ -66,11 +66,24 @@ class Person:
             return self.loc
         return loc
     
-    def followPeople(self, nbrs):
-        ind = 0
-        loc, attrs = nbrs[ind]
+    def followPeople(self, graph, people):
+        # making a dictionary (cell in graph : number of people on it)
+        people_on_graph = dict()
+        for loc in graph:
+            num_peeps = sum([1 for p in people if p.loc == loc])
+            people_on_graph[loc] = num_peeps
+        
+        best_nbr = (None, 0)
+        loc = self.loc
+        while best_nbr[0] is None:
+            for coords in graph[loc]['nbrs']:
+                if people_on_graph[coords] > best_nbr[1]:
+                    best_nbr = (coords, people_on_graph[coords])
+            loc = (loc[0]+1,loc[1]) #this might be stupid but idk :/
 
-    def move(self, nbrs, rv=None):
+        return best_nbr[0]
+
+    def move(self, graph, people, rv=None):
         '''
         when this person has finished their current movement, we must schedule
         the next one
@@ -80,19 +93,18 @@ class Person:
 
         return: tuple, location the agent decided to move to
         '''
-        # decide safe neighbours
-        nbrs = [(loc, attrs) for loc, attrs in nbrs
-                if not(attrs['G'] or attrs['W'])]
-        if not nbrs: return None
-
-        if self.strategy > 0:
-            loc = self.closestExit(nbrs)
+        if self.strategy == 0:
+            loc = self.followPeople(graph, people)
         else:
-            loc = self.followPeople(nbrs)
+            square = graph[self.loc]
+            nbrs = [(coords, graph[coords]) for coords in square['nbrs']]
+            # decide safe neighbours
+            nbrs = [(loc, attrs) for loc, attrs in nbrs
+                    if not(attrs['G'] or attrs['W'])]
+            if not nbrs: return None
 
+            loc = self.closestExit(nbrs)
 
-
-        #TODO: strategy: follow other people
         #TODO: strategy: move away from danger
 
         # print('Person {} at {} is moving to {}'.format(self.id, self.loc, loc))
