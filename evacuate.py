@@ -74,6 +74,7 @@ class FireSim:
             self.graph = self.parser.parse(f.read())
         self.numpeople = n
 
+        self.fov = np.ndarray((20,20))
         self.location_sampler = location_sampler
         self.strategy_generator = strategy_generator
         self.rate_generator = rate_generator
@@ -159,9 +160,9 @@ class FireSim:
             scaredness = random.randint(0,1)
             strategy = random.randint(0,1)
 
-            p = Person(i, self.rate_generator(),
+            p = Person(i, self.rate_generator(), loc,
                        strategy=strategy,
-                       loc=loc, scaredness=scaredness)
+                       scaredness=scaredness)
             self.people += [p]
 
         # initialise bottlenecks
@@ -172,6 +173,7 @@ class FireSim:
         # update the fire locations
         self.fires.update(set(fire_locs))
         self.risky.update(set(risky_locs))
+        self.visibility()
 
         self.r, self.c = r+1, c+1
 
@@ -185,6 +187,14 @@ class FireSim:
                                                      if self.graph[loc]['F']])),
               '\ngood luck escaping!', '='*79, 'LOGS', sep='\n'
              )
+
+    def visibility(self):
+
+        for x in range(20):
+            for y in range(int(x==0), 20):
+                self.fov[x,y] *= (x*self.graph[(x-1,y)] + y*self.graph[(x,y-1)]) / (x + y)
+        self.fov[:] = (self.fov >= 0.5)
+        print(self.fov)
 
 
     def visualize(self, t):
@@ -277,8 +287,13 @@ class FireSim:
 
         self.precompute()
         rt = self.fire_rate
-        self.sim.sched(self.update,
-                       offset=len(self.graph)/max(1, len(self.risky))**rt)
+
+        # the offset is basically the more unstable the faster the damage spreads
+        if (self.sim.now > 10): # after a time we lower the rate by 5
+            print("time now")
+            self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt + 5)
+        else:
+            self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt)
 
         self.visualize(self.animation_delay/max(1, len(self.risky))**rt)
 
@@ -370,10 +385,10 @@ class FireSim:
 
         # when a person is in damaged cell, reduce rate by 20%
         if self.graph[p.loc]['D']:
-            p.rate *= 0.8
+            p.rate *= 0.85
 
         # if rate drops below 0.6 they are considered as injured
-        if p.rate < 0.8:
+        if p.rate < 0.6:
             p.injured = True
 
         # when a persons rate drops below 0.4 they die
@@ -429,7 +444,12 @@ class FireSim:
                 else:
                     self.numdead += 1
             else:
-                self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
+                people_on_graph = dict()
+                for loc in self.graph:
+                    num_peeps = sum([1 for p in self.people if p.loc == loc])
+                    people_on_graph[loc] = max(1, num_peeps)
+                # offset depends on how many people are in the square, to model pushing and obstacles of fallen peeps
+                self.sim.sched(self.update_person, person_ix, offset=people_on_graph[p.loc]/p.rate)
 
         if (1+person_ix) % int(self.numpeople**.5) == 0:
             self.visualize(t=self.animation_delay/len(self.people)/2)
@@ -452,7 +472,7 @@ class FireSim:
             loc = tuple(p.loc)
             square = self.graph[loc]
             nbrs = square['nbrs']
-            self.sim.sched(self.update_person, i, offset=1/p.rate)
+            self.sim.sched(self.update_person, i, offset=1/p.rate+10)
 
         #updates fire initially
         if spread_fire:

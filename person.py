@@ -24,7 +24,7 @@ class Person:
     scaredness = None
 
 
-    def __init__(self, id, rate:float=1.0, strategy:float=.7, loc:tuple=None, scaredness:int=0):
+    def __init__(self, id, rate:float=1.0, loc:tuple=None, strategy:float=.7, scaredness:int=0):
         '''
         constructor method
         ---
@@ -48,20 +48,25 @@ class Person:
             if not (attributes['D'] or attributes['R']):
                 loc = location
                 break
-            # if the best location is damaged, rethink
+            # if the best location is risky, rethink
             if attributes['R']:
                 # scared people will choose R with 70% chance
-                if self.scaredness and np.random.uniform(0,1) < 0.7:
+                if self.scaredness and np.random.uniform(0,1) < 0.9:
                     loc = location
                     break
                 # non scared people will choose R with 90% chance
-                elif (not self.scaredness) and np.random.uniform(0,1) < 0.9:
+                elif (not self.scaredness) and np.random.uniform(0,1) < 0.95:
                     loc = location
                     break
-            # if the best location is risky, scared people rethink (choose to continue with 50/50 chance)
-            if attributes['D'] and (not self.scaredness) and np.random.uniform(0,1) < 0.5:
-                loc = location
-                break
+            # if the best location is damaged, scared people rethink (choose to continue with 50/50 chance)
+            if attributes['D']:
+                if self.scaredness and np.random.uniform(0,1) < 0.5:
+                    loc = location
+                    break
+                elif (not self.scaredness) and np.random.uniform(0,1) < 0.7:
+                    loc = location
+                    break
+        
         if loc is None:
             return self.loc
         return loc
@@ -85,7 +90,7 @@ class Person:
                 if not(attrs['G'] or attrs['W'])]
         if not nbrs: return None
 
-        if self.strategy > 0:
+        if self.strategy >= 0:
             loc = self.closestExit(nbrs)
         else:
             loc = self.followPeople(nbrs)
