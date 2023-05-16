@@ -157,10 +157,11 @@ class FireSim:
 
             # initilase boldness
             scaredness = random.randint(0,1)
+            strategy = random.randint(0,1)
 
             p = Person(i, self.rate_generator(),
-                       self.strategy_generator(),
-                       loc, scaredness=scaredness)
+                       strategy=strategy,
+                       loc=loc, scaredness=scaredness)
             self.people += [p]
 
         # initialise bottlenecks
@@ -230,8 +231,12 @@ class FireSim:
             
 
         # set the random square to grave and set all other values to false
+        if (np.random.uniform(0,1) < 0.1):
+            self.graves.add(((randrow, randcol), self.sim.now + float('inf')))
+        else:
+            self.graves.add(((randrow, randcol), self.sim.now))
+        
         self.graph[(randrow, randcol)].update({'G': True})
-        self.graves.add(((randrow, randcol), self.sim.now))
         self.graph[(randrow, randcol)].update({'R': False, 'D': False, 'N': False})
 
         # turn all neigbours to risky
