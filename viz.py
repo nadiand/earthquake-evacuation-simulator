@@ -40,7 +40,7 @@ class Plotter:
         bounds = [-.5, .5, 1.5, 2.5, 3.5]
         norm = colors.BoundaryNorm(bounds, cmap.N)
 
-        plt.scatter(x, y, c=c, cmap=cmap, norm=norm)
+        plt.scatter(x, y, c=c, cmap=cmap, norm=norm, linewidths=1, edgecolors='none')
 
 
     def visualize(self, graph={(3,4): {'F': 1}}, people=[], delay=.01):
