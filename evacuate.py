@@ -74,6 +74,7 @@ class FireSim:
             self.graph = self.parser.parse(f.read())
         self.numpeople = n
 
+        self.fov = {}
         self.location_sampler = location_sampler
         self.strategy_generator = strategy_generator
         self.rate_generator = rate_generator
@@ -147,7 +148,6 @@ class FireSim:
             elif attrs['R']: risky_locs += [loc]
 
 
-        
         # initialise all people
         for i in range(self.numpeople):
             loc = random.randint(0, r-1), random.randint(0, c-1)
@@ -157,10 +157,11 @@ class FireSim:
 
             # initilase boldness
             scaredness = random.randint(0,1)
+            strategy = random.randint(0,1)
 
-            p = Person(i, self.rate_generator(),
-                       self.strategy_generator(),
-                       loc, scaredness=scaredness)
+            p = Person(i, self.rate_generator(), loc,
+                       strategy=strategy,
+                       scaredness=scaredness)
             self.people += [p]
 
         # initialise bottlenecks
@@ -171,6 +172,22 @@ class FireSim:
         # update the fire locations
         self.fires.update(set(fire_locs))
         self.risky.update(set(risky_locs))
+
+        # for key in self.graph:
+        #     print(key)
+        # print(list(self.graph.keys())[-1])
+
+        dims = list(self.graph.keys())[-1]
+        dims = np.subtract(dims, (-1,-1)) #TODO fix this
+
+        walls = np.zeros(dims) 
+        
+        for loc in self.graph:
+            if self.graph[loc]['W']:
+                walls[loc] = 1
+            else:
+                walls[loc] = 0
+        self.visibility(walls)
 
         self.r, self.c = r+1, c+1
 
@@ -184,6 +201,45 @@ class FireSim:
                                                      if self.graph[loc]['F']])),
               '\ngood luck escaping!', '='*79, 'LOGS', sep='\n'
              )
+
+    def visibility(self, walls):
+
+        # for all blocks in a 5 block radius:
+            # draw line between loc and the new block
+            # if there is a wall in between then there is no line of sight
+            # if there is not then add the block to the list
+        
+    
+        n = 6
+        for loc in self.graph:
+            if not (self.graph[loc]['W'] or self.graph[loc]['S']):
+                # print(loc)
+                x_min = loc[0]-5 if loc[0] > 5 else 0
+                y_min = loc[1]-5 if loc[1] > 5 else 0
+                # print(len(walls))
+
+                x_max = loc[0]+5 if loc[0] < len(walls) - 5 else len(walls)
+                y_max = loc[1]+5 if loc[1] < len(walls[0]) - 5 else len(walls[0])
+                # print(x_min, x_max, y_min, y_max)
+                # print(range(x_min, x_max))
+                # print(range(y_min, y_max))
+                for i in range(x_min, x_max):
+                    for j in range(y_min, y_max):
+                        # print(i, j)
+                        dxy = (abs(i - loc[0]) + abs(j - loc[1])) * n
+                        # print(dxy)
+                        x = np.rint(np.linspace(i, loc[0], dxy)).astype(int)
+                        y = np.rint(np.linspace(j, loc[1], dxy)).astype(int)
+                        has_collision = np.any(walls[x, y])
+
+                        if not has_collision:
+                            if (loc) not in self.fov.keys():
+                                self.fov[loc] = []
+                            self.fov[loc].append((i, j))
+
+        print(self.fov[(1,16)])
+            
+            
 
 
     def visualize(self, t):
@@ -230,8 +286,12 @@ class FireSim:
             
 
         # set the random square to grave and set all other values to false
+        if (np.random.uniform(0,1) < 0.1):
+            self.graves.add(((randrow, randcol), self.sim.now + float('inf')))
+        else:
+            self.graves.add(((randrow, randcol), self.sim.now))
+        
         self.graph[(randrow, randcol)].update({'G': True})
-        self.graves.add(((randrow, randcol), self.sim.now))
         self.graph[(randrow, randcol)].update({'R': False, 'D': False, 'N': False})
 
         # turn all neigbours to risky
@@ -274,8 +334,13 @@ class FireSim:
             self.graph[loc].update({'D': True, 'R': False})
 
         rt = self.fire_rate
-        self.sim.sched(self.update,
-                       offset=len(self.graph)/max(1, len(self.risky))**rt)
+
+        # the offset is basically the more unstable the faster the damage spreads
+        if (self.sim.now > 10): # after a time we lower the rate by 5
+            print("time now")
+            self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt + 5)
+        else:
+            self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt)
 
         self.visualize(self.animation_delay/max(1, len(self.risky))**rt)
 
@@ -366,10 +431,10 @@ class FireSim:
 
         # when a person is in damaged cell, reduce rate by 20%
         if self.graph[p.loc]['D']:
-            p.rate *= 0.8
+            p.rate *= 0.85
 
         # if rate drops below 0.6 they are considered as injured
-        if p.rate < 0.8:
+        if p.rate < 0.6:
             p.injured = True
 
         # when a persons rate drops below 0.4 they die
@@ -425,7 +490,12 @@ class FireSim:
                 else:
                     self.numdead += 1
             else:
-                self.sim.sched(self.update_person, person_ix, offset=1/p.rate)
+                people_on_graph = dict()
+                for loc in self.graph:
+                    num_peeps = sum([1 for p in self.people if p.loc == loc])
+                    people_on_graph[loc] = max(1, num_peeps)
+                # offset depends on how many people are in the square, to model pushing and obstacles of fallen peeps
+                self.sim.sched(self.update_person, person_ix, offset=people_on_graph[p.loc]/p.rate)
 
         if (1+person_ix) % int(self.numpeople**.5) == 0:
             self.visualize(t=self.animation_delay/len(self.people)/2)
@@ -448,7 +518,7 @@ class FireSim:
             loc = tuple(p.loc)
             square = self.graph[loc]
             nbrs = square['nbrs']
-            self.sim.sched(self.update_person, i, offset=1/p.rate)
+            self.sim.sched(self.update_person, i, offset=1/p.rate+10)
 
         #updates fire initially
         if spread_fire:
