@@ -237,7 +237,6 @@ class FireSim:
                                 self.fov[loc] = []
                             self.fov[loc].append((i, j))
 
-        print(self.fov[(1,16)])
             
             
 
@@ -337,7 +336,7 @@ class FireSim:
 
         # the offset is basically the more unstable the faster the damage spreads
         if (self.sim.now > 10): # after a time we lower the rate by 5
-            print("time now")
+            # print("time now")
             self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt + 5)
         else:
             self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt)
