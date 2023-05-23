@@ -74,7 +74,7 @@ class FireSim:
             self.graph = self.parser.parse(f.read())
         self.numpeople = n
 
-        self.fov = np.ndarray((20,20))
+        self.fov = {}
         self.location_sampler = location_sampler
         self.strategy_generator = strategy_generator
         self.rate_generator = rate_generator
@@ -148,7 +148,6 @@ class FireSim:
             elif attrs['R']: risky_locs += [loc]
 
 
-        
         # initialise all people
         for i in range(self.numpeople):
             loc = random.randint(0, r-1), random.randint(0, c-1)
@@ -173,7 +172,22 @@ class FireSim:
         # update the fire locations
         self.fires.update(set(fire_locs))
         self.risky.update(set(risky_locs))
-        self.visibility()
+
+        # for key in self.graph:
+        #     print(key)
+        # print(list(self.graph.keys())[-1])
+
+        dims = list(self.graph.keys())[-1]
+        dims = np.subtract(dims, (-1,-1)) #TODO fix this
+
+        walls = np.zeros(dims) 
+        
+        for loc in self.graph:
+            if self.graph[loc]['W']:
+                walls[loc] = 1
+            else:
+                walls[loc] = 0
+        self.visibility(walls)
 
         self.r, self.c = r+1, c+1
 
@@ -188,13 +202,44 @@ class FireSim:
               '\ngood luck escaping!', '='*79, 'LOGS', sep='\n'
              )
 
-    def visibility(self):
+    def visibility(self, walls):
 
-        for x in range(20):
-            for y in range(int(x==0), 20):
-                self.fov[x,y] *= (x*self.graph[(x-1,y)] + y*self.graph[(x,y-1)]) / (x + y)
-        self.fov[:] = (self.fov >= 0.5)
-        print(self.fov)
+        # for all blocks in a 5 block radius:
+            # draw line between loc and the new block
+            # if there is a wall in between then there is no line of sight
+            # if there is not then add the block to the list
+        
+    
+        n = 6
+        for loc in self.graph:
+            if not (self.graph[loc]['W'] or self.graph[loc]['S']):
+                # print(loc)
+                x_min = loc[0]-5 if loc[0] > 5 else 0
+                y_min = loc[1]-5 if loc[1] > 5 else 0
+                # print(len(walls))
+
+                x_max = loc[0]+5 if loc[0] < len(walls) - 5 else len(walls)
+                y_max = loc[1]+5 if loc[1] < len(walls[0]) - 5 else len(walls[0])
+                # print(x_min, x_max, y_min, y_max)
+                # print(range(x_min, x_max))
+                # print(range(y_min, y_max))
+                for i in range(x_min, x_max):
+                    for j in range(y_min, y_max):
+                        # print(i, j)
+                        dxy = (abs(i - loc[0]) + abs(j - loc[1])) * n
+                        # print(dxy)
+                        x = np.rint(np.linspace(i, loc[0], dxy)).astype(int)
+                        y = np.rint(np.linspace(j, loc[1], dxy)).astype(int)
+                        has_collision = np.any(walls[x, y])
+
+                        if not has_collision:
+                            if (loc) not in self.fov.keys():
+                                self.fov[loc] = []
+                            self.fov[loc].append((i, j))
+
+        print(self.fov[(1,16)])
+            
+            
 
 
     def visualize(self, t):
