@@ -19,11 +19,11 @@ class Plotter:
 
         # create discrete colormap
         cmap = colors.ListedColormap(['lightblue', 'black', 'red',
-                                      'lightgreen', 'darkblue', '#520000', 'pink', 'orange', 'purple'])
+                                      'lightgreen', 'gold', '#520000', 'pink', 'orange', 'purple'])
         bounds = [-.5, .5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]
         norm = colors.BoundaryNorm(bounds, cmap.N)
 
-        plt.imshow(gdata, cmap=cmap, norm=norm)
+        plt.imshow(gdata, cmap=cmap, norm=norm, aspect='auto')
 
         # draw gridlines
         plt.grid(which='major', axis='both', linestyle='-', color='k', linewidth=2)
@@ -40,7 +40,7 @@ class Plotter:
         bounds = [-.5, .5, 1.5, 2.5, 3.5]
         norm = colors.BoundaryNorm(bounds, cmap.N)
 
-        plt.scatter(x, y, c=c, cmap=cmap, norm=norm, linewidths=1, edgecolors='none')
+        plt.scatter(x, y, c=c, cmap=cmap, norm=norm, linewidths=0.5, edgecolors='none')
 
 
     def visualize(self, graph={(3,4): {'F': 1}}, people=[], delay=.01):
@@ -96,22 +96,6 @@ class Plotter:
         plt.draw()
         plt.pause(delay)
         plt.clf()
-
-
-
-
-for i in range(10):
-    break
-    x = np.random.random([2, 10])
-    print(x)
-    plt.scatter(*x)
-
-    plt.draw()
-    plt.pause(0.0001)
-
-    plt.clf()
-
-
 
 
 if __name__ == '__main__':

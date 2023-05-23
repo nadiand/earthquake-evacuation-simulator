@@ -222,8 +222,8 @@ class FireSim:
 
         if len(self.risky) > 0 and np.random.uniform(0,1) < 0.3:
             loc = random.sample(self.risky, 1)[0]
-            randcol = loc[0]
-            randrow = loc[1]
+            randcol = loc[1]
+            randrow = loc[0]
         else:
             randcol = np.random.randint(0, self.c)
             randrow = np.random.randint(0, self.r)
@@ -251,6 +251,7 @@ class FireSim:
             return
         if self.maxtime and self.sim.now >= self.maxtime:
             return
+        
 
         # chance of 0.1 for a grave to form
         if np.random.uniform(0,1) < 0.7:
@@ -263,6 +264,8 @@ class FireSim:
                 self.graph[loc].update({'D': True, 'G': False})
             else:
                 new_graves.add((loc, time))
+        if self.graves == new_graves:
+            self.precompute()
         self.graves = new_graves
 
         # risky cells become damaged with probability
@@ -270,13 +273,11 @@ class FireSim:
             loc = random.sample(self.risky, 1)[0]
             self.graph[loc].update({'D': True, 'R': False})
 
-        self.precompute()
         rt = self.fire_rate
         self.sim.sched(self.update,
                        offset=len(self.graph)/max(1, len(self.risky))**rt)
 
         self.visualize(self.animation_delay/max(1, len(self.risky))**rt)
-
 
 
     def update_fire(self):
