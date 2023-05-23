@@ -55,7 +55,7 @@ class FireSim:
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
                  person_mover=random.uniform, fire_mover=random.sample,
-                 fire_rate=2, bottleneck_delay=1, animation_delay=.1,
+                 damage_rate=2, bottleneck_delay=1, animation_delay=.1,
                  verbose=False,
                  **kwargs):
         '''
@@ -81,7 +81,7 @@ class FireSim:
         self.person_mover = person_mover
         self.fire_mover = fire_mover
         
-        self.fire_rate = fire_rate
+        self.damage_rate = damage_rate
         self.bottleneck_delay = bottleneck_delay
         self.kwargs = kwargs
 
@@ -96,6 +96,7 @@ class FireSim:
 
         def bfs(target, pos):
             if graph[pos]['W'] or graph[pos]['G']: return float('inf')
+            if graph[pos]['S']: return 0.0
             q = [(pos, 0)]
             visited = set()
             while q:
@@ -117,7 +118,6 @@ class FireSim:
 
         # for each location, we do breath first search to find the nearest safe zone (distS) and the nearest fire zone (distF).
         for loc in graph:
-            graph[loc]['distF'] = bfs('F', loc)
             graph[loc]['distS'] = bfs('S', loc)
 
         self.graph = dict(graph.items())
@@ -131,7 +131,6 @@ class FireSim:
         __init__, we can proceed to create instances of: people and bottlenecks
         '''
         self.precompute()
-
         
         bottleneck_locs = []
         fire_locs = []
@@ -209,17 +208,17 @@ class FireSim:
             # if there is a wall in between then there is no line of sight
             # if there is not then add the block to the list
         
-    
+        vision = 5
         n = 6
         for loc in self.graph:
             if not (self.graph[loc]['W'] or self.graph[loc]['S']):
                 # print(loc)
-                x_min = loc[0]-5 if loc[0] > 5 else 0
-                y_min = loc[1]-5 if loc[1] > 5 else 0
+                x_min = loc[0]-vision if loc[0] > vision else 0
+                y_min = loc[1]-vision if loc[1] > vision else 0
                 # print(len(walls))
 
-                x_max = loc[0]+5 if loc[0] < len(walls) - 5 else len(walls)
-                y_max = loc[1]+5 if loc[1] < len(walls[0]) - 5 else len(walls[0])
+                x_max = loc[0]+vision if loc[0] < len(walls) - vision else len(walls)
+                y_max = loc[1]+vision if loc[1] < len(walls[0]) - vision else len(walls[0])
                 # print(x_min, x_max, y_min, y_max)
                 # print(range(x_min, x_max))
                 # print(range(y_min, y_max))
@@ -323,7 +322,9 @@ class FireSim:
                 self.graph[loc].update({'D': True, 'G': False})
             else:
                 new_graves.add((loc, time))
-        if self.graves == new_graves:
+
+        # only precompute again if the number of graves changes
+        if self.graves != new_graves:
             self.precompute()
         self.graves = new_graves
 
@@ -332,7 +333,7 @@ class FireSim:
             loc = random.sample(self.risky, 1)[0]
             self.graph[loc].update({'D': True, 'R': False})
 
-        rt = self.fire_rate
+        rt = self.damage_rate
 
         # the offset is basically the more unstable the faster the damage spreads
         if (self.sim.now > 10): # after a time we lower the rate by 5
@@ -342,61 +343,7 @@ class FireSim:
             self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt)
 
         self.visualize(self.animation_delay/max(1, len(self.risky))**rt)
-
-
-    def update_fire(self):
-        '''
-        method that controls the spread of fire. we use a rudimentary real-world
-        model that spreads fire exponentially faster proportional to the amount
-        of fire already on the floor. empty nodes are more likely to get set
-        on fire the more lit neighbors they have. empty plain nodes are more
-        likely to burn than walls.
-        fire spreads proportional to (grid_area)/(fire_area)**exp
-        the method uses the 'fire_rate' instance variable as the 'exp' in the
-        expression above.
-        fire stops spreading once it's everywhere, or when all the people have
-        stopped moving (when all are dead or safe, not moving)
-        '''
-
-        if self.numsafe + self.numdead >= self.numpeople:
-            print('INFO:', 'people no longer moving, so stopping fire spread')
-            return
-        if self.maxtime and self.sim.now >= self.maxtime:
-            return
-
-        no_fire_nbrs = [] # list, not set because more neighbors = more likely
-        for loc in self.fires:
-            # gets the square at the computed location
-            square = self.graph[loc]
-
-            # returns the full list of nbrs of the square
-            nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
-
-            # updates nbrs to exclude safe zones and spaces already on fire
-            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs
-                             if attrs['S'] == attrs['F'] == 0]
-            # more likely (twice) to spread to non-wall empty zone
-            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs
-                             if attrs['W'] == attrs['S'] == attrs['F'] == 0]
-
-        try:
-            (choice, _) = self.fire_mover(no_fire_nbrs)
-        except ValueError as e:
-            print('INFO:', 'fire is everywhere, so stopping fire spread')
-            return
-
-        self.graph[choice]['F'] = 1
-        self.fires.add(choice)
-
-        # self.precompute()
-        # rt = self.fire_rate
-        # self.sim.sched(self.update_fire,
-        #                offset=len(self.graph)/max(1, len(self.fires))**rt)
-
-        # self.visualize(self.animation_delay/max(1, len(self.fires))**rt)
-
-        return choice
-
+    
 
     def update_person(self, person_ix):
         '''
@@ -490,11 +437,9 @@ class FireSim:
                     self.numdead += 1
             else:
                 people_on_graph = dict()
-                for loc in self.graph:
-                    num_peeps = sum([1 for p in self.people if p.loc == loc])
-                    people_on_graph[loc] = max(1, num_peeps)
+                num_peeps = sum([1 for peep in self.people if p.loc == peep.loc])
                 # offset depends on how many people are in the square, to model pushing and obstacles of fallen peeps
-                self.sim.sched(self.update_person, person_ix, offset=people_on_graph[p.loc]/p.rate)
+                self.sim.sched(self.update_person, person_ix, offset=num_peeps/p.rate)
 
         if (1+person_ix) % int(self.numpeople**.5) == 0:
             self.visualize(t=self.animation_delay/len(self.people)/2)
@@ -606,7 +551,7 @@ def main():
                         help='disallow graphics?')
     parser.add_argument('-o', '--output', action='store_true',
                         help='show excessive output?')
-    parser.add_argument('-d', '--fire_rate', type=float, default=2,
+    parser.add_argument('-d', '--damage_rate', type=float, default=2,
                         help='rate of spread of fire (this is the exponent)')
     parser.add_argument('-b', '--bottleneck_delay', type=float, default=1,
                         help='how long until the next person may leave the B')
@@ -629,7 +574,7 @@ def main():
     # create an instance of Floor
     floor = FireSim(args.input, args.numpeople, location_sampler,
                     strategy_generator, rate_generator, person_mover,
-                    fire_mover, fire_rate=args.fire_rate,
+                    fire_mover, damage_rate=args.damage_rate,
                     bottleneck_delay=args.bottleneck_delay,
                     animation_delay=args.animation_delay, verbose=args.output)
 
