@@ -216,6 +216,7 @@ class FireSim:
                 x_min = loc[0]-vision if loc[0] > vision else 0
                 y_min = loc[1]-vision if loc[1] > vision else 0
                 # print(len(walls))
+                self.fov[loc] = []
 
                 x_max = loc[0]+vision if loc[0] < len(walls) - vision else len(walls)
                 y_max = loc[1]+vision if loc[1] < len(walls[0]) - vision else len(walls[0])
@@ -232,11 +233,9 @@ class FireSim:
                         has_collision = np.any(walls[x, y])
 
                         if not has_collision:
-                            if (loc) not in self.fov.keys():
-                                self.fov[loc] = []
                             self.fov[loc].append((i, j))
 
-            
+        print(self.fov[(2,16)])
             
 
 
