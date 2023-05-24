@@ -43,7 +43,7 @@ class Person:
         # find the neighbour that is the shortest distance from the door
         nbrs.sort(key=lambda tup: tup[1]['distS'])
         ind = 0
-        loc, attrs = nbrs[ind]
+        loc, _ = nbrs[ind]
         for location, attributes in nbrs:
             if not (attributes['D'] or attributes['R']):
                 loc = location
@@ -75,7 +75,7 @@ class Person:
         ind = 0
         loc, attrs = nbrs[ind]
 
-    def move(self, nbrs, rv=None):
+    def move(self, nbrs):
         '''
         when this person has finished their current movement, we must schedule
         the next one
@@ -95,15 +95,6 @@ class Person:
         else:
             loc = self.followPeople(nbrs)
 
-
-
-        #TODO: strategy: follow other people
-        #TODO: strategy: move away from danger
-
-        # print('Person {} at {} is moving to {}'.format(self.id, self.loc, loc))
-        # print('Person {} is {} away from safe'.format(self.id, attrs['distS']))
-        self.loc = loc
-        # if attrs['S']:
-        #     self.safe = True
+        self.loc = loc #TODO does this have to happen?
 
         return loc

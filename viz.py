@@ -50,6 +50,7 @@ class Plotter:
         # an arbitrary assignment of integers for each of the attributes for our
         # colormap
         attrmap = {'N': 0, 'W': 1, 'F': 2, 'S': 3, 'B': 4, 'G': 6, 'D': 7, 'R': 8}
+        # TODO remove F from here; not risking this without debugging ;d 
 
         # detect rows and columns
         r, c = 0, 0
