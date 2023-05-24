@@ -127,7 +127,6 @@ class EarthquakeSim:
         __init__, we can proceed to create instances of: people and bottlenecks
         '''
         self.precompute()
-
         
         bottleneck_locs = []
         risky_locs = []
@@ -140,7 +139,6 @@ class EarthquakeSim:
             
             if attrs['B']: bottleneck_locs += [loc]
             elif attrs['R']: risky_locs += [loc]
-
 
         # initialise all people
         for i in range(self.numpeople):
@@ -190,13 +188,11 @@ class EarthquakeSim:
              )
 
     def visibility(self, walls):
-
         # for all blocks in a 5 block radius:
             # draw line between loc and the new block
             # if there is a wall in between then there is no line of sight
             # if there is not then add the block to the list
-        
-    
+
         n = 6
         for loc in self.graph:
             if not (self.graph[loc]['W'] or self.graph[loc]['S']):
@@ -224,10 +220,6 @@ class EarthquakeSim:
                                 self.fov[loc] = []
                             self.fov[loc].append((i, j))
 
-            
-            
-
-
     def visualize(self, t):
         '''
         '''
@@ -240,7 +232,6 @@ class EarthquakeSim:
         handles the bottleneck zones on the grid, where people cannot all pass
         at once. for simplicity, bottlenecks are treated as queues
         '''
-
         for key in self.bottlenecks:
             personLeaving = self.bottlenecks[key].exitBottleNeck()
             if(personLeaving != None):
@@ -269,7 +260,6 @@ class EarthquakeSim:
         else:
             randcol = np.random.randint(0, self.c)
             randrow = np.random.randint(0, self.r)
-            
 
         # set the random square to grave and set all other values to false
         if (np.random.uniform(0,1) < 0.1):
@@ -297,7 +287,6 @@ class EarthquakeSim:
             return
         if self.maxtime and self.sim.now >= self.maxtime:
             return
-        
 
         # chance of 0.1 for a grave to form
         if np.random.uniform(0,1) < 0.7:
@@ -323,7 +312,6 @@ class EarthquakeSim:
 
         # the offset is basically the more unstable the faster the damage spreads
         if (self.sim.now > 10): # after a time we lower the rate by 5
-            # print("time now")
             self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt + 5)
         else:
             self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt)
@@ -442,7 +430,6 @@ class EarthquakeSim:
         for i, p in enumerate(self.people):
             loc = tuple(p.loc)
             square = self.graph[loc]
-            nbrs = square['nbrs']
             self.sim.sched(self.update_person, i, offset=1/p.rate+10)
 
         #updates fire initially
@@ -499,8 +486,6 @@ class EarthquakeSim:
         print("Id\tsafe\tinjured\tstartR\trate\tstrat\tscaredness")
         for p in self.people:
             print(p.id, "\t", round(p.exit_time, 2), "\t", p.injured, "\t", round(p.starting_rate, 2), "\t", round(p.rate, 2), "\t", round(p.strategy, 2), "\t", p.scaredness)
-
-        # print(self.parser.tostr(self.graph))
         self.visualize(4)
 
 
