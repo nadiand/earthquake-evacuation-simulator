@@ -30,7 +30,7 @@ import numpy as np
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
-class FireSim:
+class EarthquakeSim:
     sim = None
     graph = None # dictionary (x,y) --> attributes
     gui = False
@@ -43,7 +43,6 @@ class FireSim:
     nummoving = 0
 
     bottlenecks = dict()
-    fires = set()
     graves = set()
     risky = set()
     people = []
@@ -54,8 +53,8 @@ class FireSim:
     def __init__(self, input, n, location_sampler=random.sample,
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
-                 person_mover=random.uniform, fire_mover=random.sample,
-                 fire_rate=2, bottleneck_delay=1, animation_delay=.1,
+                 person_mover=random.uniform, 
+                 damage_rate=2, bottleneck_delay=1, animation_delay=.1,
                  verbose=False,
                  **kwargs):
         '''
@@ -79,9 +78,8 @@ class FireSim:
         self.strategy_generator = strategy_generator
         self.rate_generator = rate_generator
         self.person_mover = person_mover
-        self.fire_mover = fire_mover
         
-        self.fire_rate = fire_rate
+        self.damage_rate = damage_rate
         self.bottleneck_delay = bottleneck_delay
         self.kwargs = kwargs
 
@@ -90,7 +88,7 @@ class FireSim:
 
     def precompute(self):
         '''
-        precompute stats on the graph, e.g. nearest safe zone, nearest fire
+        precompute stats on the graph, i.e. nearest safe zone
         '''
         graph = self.graph
 
@@ -103,7 +101,6 @@ class FireSim:
                 if node in visited: continue
                 visited.add(node)
 
-                #TODO: figure out how to take dangerous tiles into account for pathfinding
                 node = graph[node]
                 if node['W'] or node['G']: continue
                 if node[target]: return dist
@@ -115,9 +112,8 @@ class FireSim:
             # unreachable
             return float('inf')
 
-        # for each location, we do breath first search to find the nearest safe zone (distS) and the nearest fire zone (distF).
+        # for each location, we do breath first search to find the nearest safe zone (distS)
         for loc in graph:
-            graph[loc]['distF'] = bfs('F', loc)
             graph[loc]['distS'] = bfs('S', loc)
 
         self.graph = dict(graph.items())
@@ -134,17 +130,15 @@ class FireSim:
 
         
         bottleneck_locs = []
-        fire_locs = []
         risky_locs = []
 
-        # get lists of fire locations, bottleneck locations and people
+        # get lists of bottleneck locations and people locations
         r, c = 0, 0
         for loc, attrs in self.graph.items():
             r = max(r, loc[0])
             c = max(c, loc[1])
             
             if attrs['B']: bottleneck_locs += [loc]
-            elif attrs['F']: fire_locs += [loc]
             elif attrs['R']: risky_locs += [loc]
 
 
@@ -169,13 +163,8 @@ class FireSim:
             b = Bottleneck(loc)
             self.bottlenecks[loc] = b
 
-        # update the fire locations
-        self.fires.update(set(fire_locs))
+        # update the risky cell locations
         self.risky.update(set(risky_locs))
-
-        # for key in self.graph:
-        #     print(key)
-        # print(list(self.graph.keys())[-1])
 
         dims = list(self.graph.keys())[-1]
         dims = np.subtract(dims, (-1,-1)) #TODO fix this
@@ -197,8 +186,6 @@ class FireSim:
                     self.r, self.c, len(self.people)
                   ),
               'initialized {} bottleneck(s)'.format(len(self.bottlenecks)),
-              'detected {} fire zone(s)'.format(len([loc for loc in self.graph
-                                                     if self.graph[loc]['F']])),
               '\ngood luck escaping!', '='*79, 'LOGS', sep='\n'
              )
 
@@ -332,7 +319,7 @@ class FireSim:
             loc = random.sample(self.risky, 1)[0]
             self.graph[loc].update({'D': True, 'R': False})
 
-        rt = self.fire_rate
+        rt = self.damage_rate
 
         # the offset is basically the more unstable the faster the damage spreads
         if (self.sim.now > 10): # after a time we lower the rate by 5
@@ -342,61 +329,6 @@ class FireSim:
             self.sim.sched(self.update, offset=len(self.graph)/max(1, len(self.risky))**rt)
 
         self.visualize(self.animation_delay/max(1, len(self.risky))**rt)
-
-
-    def update_fire(self):
-        '''
-        method that controls the spread of fire. we use a rudimentary real-world
-        model that spreads fire exponentially faster proportional to the amount
-        of fire already on the floor. empty nodes are more likely to get set
-        on fire the more lit neighbors they have. empty plain nodes are more
-        likely to burn than walls.
-        fire spreads proportional to (grid_area)/(fire_area)**exp
-        the method uses the 'fire_rate' instance variable as the 'exp' in the
-        expression above.
-        fire stops spreading once it's everywhere, or when all the people have
-        stopped moving (when all are dead or safe, not moving)
-        '''
-
-        if self.numsafe + self.numdead >= self.numpeople:
-            print('INFO:', 'people no longer moving, so stopping fire spread')
-            return
-        if self.maxtime and self.sim.now >= self.maxtime:
-            return
-
-        no_fire_nbrs = [] # list, not set because more neighbors = more likely
-        for loc in self.fires:
-            # gets the square at the computed location
-            square = self.graph[loc]
-
-            # returns the full list of nbrs of the square
-            nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
-
-            # updates nbrs to exclude safe zones and spaces already on fire
-            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs
-                             if attrs['S'] == attrs['F'] == 0]
-            # more likely (twice) to spread to non-wall empty zone
-            no_fire_nbrs += [(loc, attrs) for loc, attrs in nbrs
-                             if attrs['W'] == attrs['S'] == attrs['F'] == 0]
-
-        try:
-            (choice, _) = self.fire_mover(no_fire_nbrs)
-        except ValueError as e:
-            print('INFO:', 'fire is everywhere, so stopping fire spread')
-            return
-
-        self.graph[choice]['F'] = 1
-        self.fires.add(choice)
-
-        # self.precompute()
-        # rt = self.fire_rate
-        # self.sim.sched(self.update_fire,
-        #                offset=len(self.graph)/max(1, len(self.fires))**rt)
-
-        # self.visualize(self.animation_delay/max(1, len(self.fires))**rt)
-
-        return choice
-
 
     def update_person(self, person_ix):
         '''
@@ -463,6 +395,7 @@ class FireSim:
         target = p.move(nbrs)
 
         # if there is no target location, then consider the person dead
+        # TODO do we ever come here? in what situation would that be? isn't this just the grave?
         if not target:
             p.alive = False
             self.numdead += 1
@@ -472,15 +405,11 @@ class FireSim:
                                                                    p.id, p.loc))
             return
         
-        # get the target square, and handle walking, going into a bottleneck, or going into fire.
+        # get the target square, and handle walking, going into a bottleneck, or escaping into safe space
         square = self.graph[target]
         if square['B']:
             b = self.bottlenecks[target]
             b.enterBottleNeck(p)
-        elif square['F']:
-            p.alive = False
-            self.numdead += 1
-            return
         else:
             t = 1/p.rate
             if self.sim.now + t >= (self.maxtime or float('inf')):
@@ -499,9 +428,6 @@ class FireSim:
         if (1+person_ix) % int(self.numpeople**.5) == 0:
             self.visualize(t=self.animation_delay/len(self.people)/2)
 
-        # self.sim.show_calendar()
-
-    
 
     def simulate(self, maxtime=None, spread_fire=False, gui=False):
         '''
@@ -523,8 +449,6 @@ class FireSim:
         if spread_fire:
             self.sim.sched(self.update,
                            offset=1)
-            # self.sim.sched(self.update_fire,
-            #                offset=1) #len(self.graph)/max(1, len(self.fires)))
         else:
             print('INFO\t', 'fire won\'t spread around!')
         self.sim.sched(self.update_bottlenecks, offset=self.bottleneck_delay)
@@ -582,7 +506,7 @@ class FireSim:
 
 def main():
     '''
-    driver method for this file. the firesim class can be used via imports as
+    driver method for this file. the EarthquakeSim class can be used via imports as
     well, but this driver file provides a comprehensive standalone interface
     to the simulation
     '''
@@ -606,8 +530,8 @@ def main():
                         help='disallow graphics?')
     parser.add_argument('-o', '--output', action='store_true',
                         help='show excessive output?')
-    parser.add_argument('-d', '--fire_rate', type=float, default=2,
-                        help='rate of spread of fire (this is the exponent)')
+    parser.add_argument('-d', '--damage_rate', type=float, default=2,
+                        help='rate of spread of damage (this is the exponent)')
     parser.add_argument('-b', '--bottleneck_delay', type=float, default=1,
                         help='how long until the next person may leave the B')
     parser.add_argument('-a', '--animation_delay', type=float, default=1,
@@ -617,19 +541,18 @@ def main():
     print('commandline arguments:', args, '\n')
 
     # set up random streams
-    streams = [np.random.Generator(PCG64(args.random_state, i)) for i in range(5)]
-    loc_strm, strat_strm, rate_strm, pax_strm, fire_strm = streams
+    streams = [np.random.Generator(PCG64(args.random_state, i)) for i in range(4)]
+    loc_strm, strat_strm, rate_strm, pax_strm = streams
 
     location_sampler = loc_strm.choice # used to make initial placement of pax
     strategy_generator = lambda: strat_strm.uniform(.5, 1) # used to pick move
     rate_generator = lambda: rate_strm.uniform(.9, 1.1)
-    person_mover = lambda: pax_strm.uniform() #
-    fire_mover = lambda a: fire_strm.choice(a) #
+    person_mover = lambda: pax_strm.uniform() 
 
     # create an instance of Floor
-    floor = FireSim(args.input, args.numpeople, location_sampler,
+    floor = EarthquakeSim(args.input, args.numpeople, location_sampler,
                     strategy_generator, rate_generator, person_mover,
-                    fire_mover, fire_rate=args.fire_rate,
+                    damage_rate=args.damage_rate,
                     bottleneck_delay=args.bottleneck_delay,
                     animation_delay=args.animation_delay, verbose=args.output)
 
