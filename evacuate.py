@@ -417,7 +417,7 @@ class EarthquakeSim:
             self.visualize(t=self.animation_delay/len(self.people)/2)
 
 
-    def simulate(self, maxtime=None, spread_fire=False, gui=False):
+    def simulate(self, maxtime=None, spread_damage=False, gui=False):
         '''
         sets up initial scheduling and calls the sim.run() method in simulus
         '''
@@ -433,11 +433,11 @@ class EarthquakeSim:
             self.sim.sched(self.update_person, i, offset=1/p.rate+10)
 
         #updates fire initially
-        if spread_fire:
+        if spread_damage:
             self.sim.sched(self.update,
                            offset=1)
         else:
-            print('INFO\t', 'fire won\'t spread around!')
+            print('INFO\t', 'damage won\'t spread around!')
         self.sim.sched(self.update_bottlenecks, offset=self.bottleneck_delay)
 
         self.maxtime = maxtime
@@ -509,7 +509,7 @@ def main():
                         help='the building collapses at this clock tick. people'
                              ' beginning movement before this will be assumed'
                              ' to have moved away sufficiently (safe)')
-    parser.add_argument('-f', '--no_spread_fire', action='store_true',
+    parser.add_argument('-f', '--no_spread_damage', action='store_true',
                         help='disallow fire to spread around?')
     parser.add_argument('-g', '--no_graphical_output', action='store_true',
                         help='disallow graphics?')
@@ -543,7 +543,7 @@ def main():
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
-    floor.simulate(maxtime=args.max_time, spread_fire=not args.no_spread_fire,
+    floor.simulate(maxtime=args.max_time, spread_damage=not args.no_spread_damage,
                    gui=not args.no_graphical_output)
 
     floor.stats()
