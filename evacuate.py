@@ -69,6 +69,7 @@ class FireSim:
         self.parser = FloorParser() 
         self.animation_delay = animation_delay
         self.verbose = verbose
+        self.numwaiting = 0 
 
         with open(input, 'r') as f:
             self.graph = self.parser.parse(f.read())
@@ -235,7 +236,9 @@ class FireSim:
                         if not has_collision:
                             self.fov[loc].append((i, j))
 
-        print(self.fov[(2,16)])
+        #print(self.fov[(2,16)])
+        #print(self.fov[loc])
+
             
 
 
@@ -405,8 +408,8 @@ class FireSim:
 
         loc = p.loc
         square = self.graph[loc]
-        nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]
-        target = p.move(nbrs)
+        nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]  
+        target = p.move(nbrs,self.fov[loc])
 
         # if there is no target location, then consider the person dead
         if not target:
@@ -439,6 +442,13 @@ class FireSim:
                 num_peeps = sum([1 for peep in self.people if p.loc == peep.loc])
                 # offset depends on how many people are in the square, to model pushing and obstacles of fallen peeps
                 self.sim.sched(self.update_person, person_ix, offset=num_peeps/p.rate)
+
+        if self.maxtime and self.sim.now >= self.maxtime:
+            # Mark the remaining alive people as waiting for rescue
+            for p in self.people:
+                if p.alive:
+                    p.waiting_for_rescue = True
+                    self.numwaiting += 1 
 
         if (1+person_ix) % int(self.numpeople**.5) == 0:
             self.visualize(t=self.animation_delay/len(self.people)/2)
@@ -474,6 +484,11 @@ class FireSim:
         self.sim.sched(self.update_bottlenecks, offset=self.bottleneck_delay)
 
         self.maxtime = maxtime
+
+        # Termination condition: All people are either safe or waiting for rescue
+        while self.numsafe + self.numwaiting < self.numpeople:
+            self.sim.step()
+
         self.sim.run()
 
         self.avg_exit /= max(self.numsafe, 1)
@@ -536,7 +551,7 @@ def main():
                         default='in/twoexitbottleneck.txt',
                         help='input floor plan file (default: '
                              'in/twoexitbottleneck.py)')
-    parser.add_argument('-n', '--numpeople', type=int, default=10,
+    parser.add_argument('-n', '--numpeople', type=int, default=30,
                         help='number of people in the simulation (default:10)')
     parser.add_argument('-r', '--random_state', type=int, default=8675309,
                         help='aka. seed (default:8675309)')

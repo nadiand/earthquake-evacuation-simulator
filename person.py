@@ -38,6 +38,7 @@ class Person:
         self.loc = tuple(loc)
         self.scaredness = scaredness
         self.starting_rate = rate
+        self.waiting_for_rescue = False
 
     def closestExit(self, nbrs):
         # find the neighbour that is the shortest distance from the door
@@ -71,11 +72,26 @@ class Person:
             return self.loc
         return loc
     
-    def followPeople(self, nbrs):
-        ind = 0
-        loc, attrs = nbrs[ind]
+    def followPeople(self, nbrs, fov):
+        # ind = 0
+        # loc, attrs = nbrs[ind]
+        #print("Entered followPeople")
+        max_people = -1
+        dir = None
 
-    def move(self, nbrs, rv=None):
+        for nbr_loc, attrs in nbrs:
+            if nbr_loc in fov:
+                people_count = len([person for person in fov if person[0] == nbr_loc])
+                if people_count > max_people:
+                    max_people = people_count
+                    dir = nbr_loc
+
+        return dir
+
+
+
+
+    def move(self, nbrs, fov, rv=None):
         '''
         when this person has finished their current movement, we must schedule
         the next one
@@ -90,10 +106,10 @@ class Person:
                 if not(attrs['G'] or attrs['W'])]
         if not nbrs: return None
 
-        if self.strategy >= 0:
+        if self.strategy >= 0.2:
             loc = self.closestExit(nbrs)
         else:
-            loc = self.followPeople(nbrs)
+            loc = self.followPeople(nbrs, fov)
 
 
 
