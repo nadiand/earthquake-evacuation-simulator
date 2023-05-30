@@ -27,6 +27,7 @@ from person import Person
 from bottleneck import Bottleneck
 from floorparse import FloorParser
 import numpy as np
+# from pandas import DataFrame
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
@@ -235,7 +236,6 @@ class FireSim:
                         if not has_collision:
                             self.fov[loc].append((i, j))
 
-        print(self.fov[(2,16)])
             
 
 
@@ -362,6 +362,7 @@ class FireSim:
         # when a grave appears on top of a person, then count them as dead
         if self.graph[p.loc]['G'] or not p.alive:
             p.alive = False
+            p.exit_time = self.sim.now
             p.rate = 0
             self.numdead += 1
             if self.verbose:
@@ -385,6 +386,7 @@ class FireSim:
         # when a persons rate drops below 0.4 they die
         if p.rate < 0.4:
             p.alive = False
+            p.exit_time = self.sim.now
             self.numdead += 1
             if self.verbose:
                 print('{:>6.2f}\tPerson {:>3} at {} died due to injury'.format(
@@ -409,14 +411,15 @@ class FireSim:
         target = p.move(nbrs)
 
         # if there is no target location, then consider the person dead
-        if not target:
-            p.alive = False
-            self.numdead += 1
-            if self.verbose:
-                print('{:>6.2f}\tPerson {:>3} at {} got trapped in fire'.format(
-                                                                   self.sim.now,
-                                                                   p.id, p.loc))
-            return
+        # if not target:
+        #     p.alive = False
+        #     p.exit_time = self.sim.now
+        #     self.numdead += 1
+        #     if self.verbose:
+        #         print('{:>6.2f}\tPerson {:>3} at {} got trapped in fire'.format(
+        #                                                            self.sim.now,
+        #                                                            p.id, p.loc))
+        #     return
         
         # get the target square, and handle walking, going into a bottleneck, or going into fire.
         square = self.graph[target]
@@ -425,6 +428,7 @@ class FireSim:
             b.enterBottleNeck(p)
         elif square['F']:
             p.alive = False
+            p.exit_time = self.sim.now
             self.numdead += 1
             return
         else:
@@ -517,14 +521,20 @@ class FireSim:
             printstats('average time to safe', 'NA')
         print()
         print("Id\tsafe\tinjured\tstartR\trate\tstrat\tscaredness")
+
+        # id:int survived:bool time:float init_rate:float curr_rate:float injured:bool strat:bool scared:bool
+        results = ""
         for p in self.people:
             print(p.id, "\t", round(p.exit_time, 2), "\t", p.injured, "\t", round(p.starting_rate, 2), "\t", round(p.rate, 2), "\t", round(p.strategy, 2), "\t", p.scaredness)
+            results += str(p.id) + " " + str(p.alive) + " " + str(round(p.exit_time, 3)) + " " + str(round(p.starting_rate, 3)) + " " + str(round(p.rate, 3)) + " " + str(p.injured) + " " + str(round(p.strategy, 3)) + " " + str(p.scaredness) + "\n"
 
         # print(self.parser.tostr(self.graph))
         self.visualize(4)
 
+        return results
 
-def main():
+
+def main(raw_args=None):
     '''
     driver method for this file. the firesim class can be used via imports as
     well, but this driver file provides a comprehensive standalone interface
@@ -556,7 +566,7 @@ def main():
                         help='how long until the next person may leave the B')
     parser.add_argument('-a', '--animation_delay', type=float, default=1,
                         help='delay per frame of animated visualization (s)')
-    args = parser.parse_args()
+    args = parser.parse_args(raw_args)
     # output them as a make-sure-this-is-what-you-meant
     print('commandline arguments:', args, '\n')
 
@@ -582,7 +592,9 @@ def main():
     floor.simulate(maxtime=args.max_time, spread_fire=not args.no_spread_fire,
                    gui=not args.no_graphical_output)
 
-    floor.stats()
+    stats = floor.stats()
+    return stats
 
 if __name__ == '__main__':
-    main()
+    stats = main()
+    
