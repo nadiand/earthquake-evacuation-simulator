@@ -157,8 +157,8 @@ class FireSim:
 
             # initilase boldness
             scaredness = random.randint(0,1)
-            strategy = random.randint(0,1)
-
+            strategy = random.uniform(0,1)
+            
             p = Person(i, self.rate_generator(), loc,
                        strategy=strategy,
                        scaredness=scaredness)
@@ -209,7 +209,7 @@ class FireSim:
             # if there is a wall in between then there is no line of sight
             # if there is not then add the block to the list
         
-        vision = 5
+        vision = 10
         n = 6
         for loc in self.graph:
             if not (self.graph[loc]['W'] or self.graph[loc]['S']):
