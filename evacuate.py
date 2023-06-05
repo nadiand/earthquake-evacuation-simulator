@@ -86,6 +86,23 @@ class FireSim:
         self.bottleneck_delay = bottleneck_delay
         self.kwargs = kwargs
 
+        self.gui = False
+        self.r = None
+        self.c = None
+
+        self.people = []
+        self.bottlenecks = dict()
+        self.fires = set()
+        self.graves = set()
+        self.risky = set()
+
+        self.numdead = 0
+        self.numsafe = 0
+        self.nummoving = 0
+
+        self.exit_times = []
+        self.avg_exit = 0
+
         self.setup()
 
 
@@ -157,7 +174,7 @@ class FireSim:
 
             # initilase boldness
             scaredness = random.randint(0,1)
-            strategy = random.randint(0,1)
+            strategy = 1 #random.randint(0,1)
 
             p = Person(i, self.rate_generator(), loc,
                        strategy=strategy,
@@ -209,7 +226,7 @@ class FireSim:
             # if there is a wall in between then there is no line of sight
             # if there is not then add the block to the list
         
-        vision = 5
+        vision = 1
         n = 6
         for loc in self.graph:
             if not (self.graph[loc]['W'] or self.graph[loc]['S']):
@@ -323,7 +340,7 @@ class FireSim:
                 new_graves.add((loc, time))
 
         # only precompute again if the number of graves changes
-        if self.graves != new_graves:
+        if self.graves != new_graves and self.sim.now > 10:
             self.precompute()
         self.graves = new_graves
 

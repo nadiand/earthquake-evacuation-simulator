@@ -19,7 +19,7 @@ class Plotter:
 
         # create discrete colormap
         cmap = colors.ListedColormap(['lightblue', 'black', 'red',
-                                      'lightgreen', 'gold', '#520000', 'pink', 'orange', 'purple'])
+                                      'lightgreen', 'royalblue', '#520000', 'maroon', 'firebrick', 'lightcoral'])
         bounds = [-.5, .5, 1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5]
         norm = colors.BoundaryNorm(bounds, cmap.N)
 
