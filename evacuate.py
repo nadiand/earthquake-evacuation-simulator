@@ -159,7 +159,7 @@ class FireSim:
             scaredness = random.randint(0,1)
             strategy = random.uniform(0,1)
             
-            p = Person(i, self.rate_generator(), loc,
+            p = Person(i, self.rate_generator(), loc, graph=self.graph,
                        strategy=strategy,
                        scaredness=scaredness)
             self.people += [p]
@@ -209,7 +209,7 @@ class FireSim:
             # if there is a wall in between then there is no line of sight
             # if there is not then add the block to the list
         
-        vision = 10
+        vision = 20
         n = 6
         for loc in self.graph:
             if not (self.graph[loc]['W'] or self.graph[loc]['S']):
@@ -409,7 +409,8 @@ class FireSim:
         loc = p.loc
         square = self.graph[loc]
         nbrs = [(coords, self.graph[coords]) for coords in square['nbrs']]  
-        target = p.move(nbrs,self.fov[loc])
+        target = p.move(nbrs, self.fov, loc)
+
 
         # if there is no target location, then consider the person dead
         if not target:
@@ -532,6 +533,7 @@ class FireSim:
             printstats('average time to safe', 'NA')
         print()
         print("Id\tsafe\tinjured\tstartR\trate\tstrat\tscaredness")
+       
         for p in self.people:
             print(p.id, "\t", round(p.exit_time, 2), "\t", p.injured, "\t", round(p.starting_rate, 2), "\t", round(p.rate, 2), "\t", round(p.strategy, 2), "\t", p.scaredness)
 
