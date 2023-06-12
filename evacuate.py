@@ -57,7 +57,7 @@ class FireSim:
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
                  person_mover=random.uniform, fire_mover=random.sample,
                  damage_rate=2, bottleneck_delay=1, animation_delay=.1,
-                 verbose=False,
+                 verbose=False, scaredness_rate=0.5, follower_rate=0.2,
                  **kwargs):
         '''
         constructor method
@@ -102,6 +102,9 @@ class FireSim:
 
         self.exit_times = []
         self.avg_exit = 0
+
+        self.scaredness_rate = scaredness_rate
+        self.follower_rate = follower_rate
 
         self.setup()
 
@@ -172,12 +175,13 @@ class FireSim:
                 # sample a random location that is not a wall nor a safe location
                 loc = random.randint(0, r-1), random.randint(0, c-1)
 
-            # initilase boldness
-            scaredness = random.randint(0,1)
-            strategy = 1 #random.randint(0,1)
+            # initilase scaredness
+            scaredness = 0
+            if random.uniform(0,1) < self.scaredness_rate:
+                scaredness = 1
 
             p = Person(i, self.rate_generator(), loc,
-                       strategy=strategy,
+                       strategy=self.follower_rate,
                        scaredness=scaredness)
             self.people += [p]
 
@@ -189,10 +193,6 @@ class FireSim:
         # update the fire locations
         self.fires.update(set(fire_locs))
         self.risky.update(set(risky_locs))
-
-        # for key in self.graph:
-        #     print(key)
-        # print(list(self.graph.keys())[-1])
 
         dims = list(self.graph.keys())[-1]
         dims = np.subtract(dims, (-1,-1)) #TODO fix this
@@ -226,7 +226,7 @@ class FireSim:
             # if there is a wall in between then there is no line of sight
             # if there is not then add the block to the list
         
-        vision = 1
+        vision = 20
         n = 6
         for loc in self.graph:
             if not (self.graph[loc]['W'] or self.graph[loc]['S']):
@@ -583,6 +583,10 @@ def main(raw_args=None):
                         help='how long until the next person may leave the B')
     parser.add_argument('-a', '--animation_delay', type=float, default=1,
                         help='delay per frame of animated visualization (s)')
+    parser.add_argument('-S', '--scaredness_rate', type=float, default=0.5,
+                        help='number of people who are scared to walk through danger')
+    parser.add_argument('-F', '--follower_rate', type=float, default=0.2,
+                        help='number of people who have the follower strategy')
     args = parser.parse_args(raw_args)
     # output them as a make-sure-this-is-what-you-meant
     print('commandline arguments:', args, '\n')
@@ -602,7 +606,8 @@ def main(raw_args=None):
                     strategy_generator, rate_generator, person_mover,
                     fire_mover, damage_rate=args.damage_rate,
                     bottleneck_delay=args.bottleneck_delay,
-                    animation_delay=args.animation_delay, verbose=args.output)
+                    animation_delay=args.animation_delay, verbose=args.output, 
+                    scaredness_rate=args.scaredness_rate, follower_rate=args.follower_rate)
 
     # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
