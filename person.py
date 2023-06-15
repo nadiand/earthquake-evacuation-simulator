@@ -22,9 +22,11 @@ class Person:
     exit_time = 0 # time it took this agent to get to the safe zone from its
                   # starting point
     scaredness = None
+    waiting_for_rescue = False
+    
 
 
-    def __init__(self, id, rate:float=1.0, loc:tuple=None, strategy:float=.7, scaredness:int=0):
+    def __init__(self, id, rate:float=1.0, loc:tuple=None, strategy:float=.7, scaredness:int=0, graph=None):
         '''
         constructor method
         ---
@@ -38,6 +40,8 @@ class Person:
         self.loc = tuple(loc)
         self.scaredness = scaredness
         self.starting_rate = rate
+        self.graph = graph
+        self.loc_history = []  # Initialize location history
 
     def closestExit(self, nbrs):
         # find the neighbour that is the shortest distance from the door
@@ -71,11 +75,22 @@ class Person:
             return self.loc
         return loc
     
-    def followPeople(self, nbrs):
-        ind = 0
-        loc, attrs = nbrs[ind]
 
-    def move(self, nbrs, rv=None):
+    def followPeople(self, nbrs, fov):
+        max_people = -1
+        dir = None
+
+        for nbr_loc, attrs in nbrs:
+            if nbr_loc in fov:
+                people_count = len([person for person in fov if person[0] == nbr_loc])
+                if people_count > max_people:
+                    max_people = people_count
+                    dir = nbr_loc
+
+        return dir
+
+
+    def move(self, nbrs, fov, loc, rv=None):
         '''
         when this person has finished their current movement, we must schedule
         the next one
@@ -84,26 +99,54 @@ class Person:
                       to our specification
 
         return: tuple, location the agent decided to move to
-        '''
-        # decide safe neighbours
-        nbrs = [(loc, attrs) for loc, attrs in nbrs
-                if not(attrs['G'] or attrs['W'])]
-        if not nbrs: return None
+        '''   
 
-        if self.strategy >= 0:
-            loc = self.closestExit(nbrs)
+        # Decide safe neighbors
+        safe_nbrs = [(loc, attrs) for loc, attrs in nbrs if not (attrs['G'] or attrs['W'])]
+        if not safe_nbrs:
+            return None
+
+        # Check if the person sees the door
+        if any(fov_loc in self.graph and self.graph[fov_loc]['D'] for fov_loc in fov):
+            # Stop following and head towards the closest exit
+            loc = self.closestExit(safe_nbrs)
         else:
-            loc = self.followPeople(nbrs)
+            # Look for a bottleneck and a safe space if no people are around
+            loc = self.followPeople(safe_nbrs, fov)
+            if loc is None:
+                # Get all the bottleneck and safe space locations within the field of vision
+                all_bottlenecks = [loc for loc, attrs in self.graph.items() if attrs['B']]
+                all_safe_spaces = [loc for loc, attrs in self.graph.items() if attrs['S']]
 
+                # Calculate distances to bottleneck and safe space locations in the entire graph
+                bottlenecks = [(loc, self.graph[loc]['distB']) for loc in all_bottlenecks if 'distB' in self.graph[loc]]
+                safe_spaces = [(loc, self.graph[loc]['distS']) for loc in all_safe_spaces if 'distS' in self.graph[loc]]
 
+                # Find the closest bottleneck among all bottleneck locations
+                min_dist_b = float('inf')
+                closest_bottleneck = None
+                for loc, dist in bottlenecks:
+                    if dist < min_dist_b:
+                        min_dist_b = dist
+                        closest_bottleneck = loc
 
-        #TODO: strategy: follow other people
-        #TODO: strategy: move away from danger
+                # If no bottleneck found, find the closest safe space among all safe space locations
+                if closest_bottleneck is None:
+                    min_dist_s = float('inf')
+                    closest_safe_space = None
+                    for loc, dist in safe_spaces:
+                        if dist < min_dist_s:
+                            min_dist_s = dist
+                            closest_safe_space = loc
 
-        # print('Person {} at {} is moving to {}'.format(self.id, self.loc, loc))
-        # print('Person {} is {} away from safe'.format(self.id, attrs['distS']))
+                if closest_bottleneck is not None:
+                    loc = closest_bottleneck
+                elif closest_safe_space is not None:
+                    loc = closest_safe_space
+
+        # Update the location history
+        self.loc_history.append(self.loc)
+
         self.loc = loc
-        # if attrs['S']:
-        #     self.safe = True
 
         return loc
