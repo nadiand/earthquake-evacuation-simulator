@@ -6,6 +6,7 @@ In this file we define a useful class for the agent, 'Person'
 '''
 
 import numpy as np
+import math
 
 class Person:
     id = None
@@ -17,16 +18,15 @@ class Person:
     alive = True 
     safe = False # mark safe once successfully exited. helps track how many
                  # people still need to finish
-    injured = False
+    injured = False # mark people that are injured i.e. their rate falls below a threshold
 
-    exit_time = 0 # time it took this agent to get to the safe zone from its
-                  # starting point
+    exit_time = 0 # time it took this agent to get to the safe zone from its starting point
     scaredness = None
     waiting_for_rescue = False
     
 
 
-    def __init__(self, id, rate:float=1.0, loc:tuple=None, strategy:float=.7, scaredness:int=0, graph=None):
+    def __init__(self, id, rate:float=1.0, loc:tuple=None, strategy:int=0, scaredness:int=0, graph=None):
         '''
         constructor method
         ---
@@ -76,21 +76,43 @@ class Person:
         return loc
     
 
-    def followPeople(self, nbrs, fov):
-        max_people = -1
-        dir = None
+    def followPeople(self, nbrs, fov, loc_max_people):
+        move = None
 
-        for nbr_loc, attrs in nbrs:
-            if nbr_loc in fov:
-                people_count = len([person for person in fov if person[0] == nbr_loc])
-                if people_count > max_people:
-                    max_people = people_count
-                    dir = nbr_loc
+        # check if person can see a safe space, if so, move toward closest exit
+        for loc in fov:
+            if self.graph[loc]['S']:
+                return self.closestExit(nbrs)
 
-        return dir
+        shortest_dist = float('inf')
+        # find direction to loc with the most people
+        if loc_max_people is not None:
+            for nbr_loc, attrs in nbrs:
+                dist = math.dist(nbr_loc, loc_max_people)
+                if dist < shortest_dist:
+                    shortest_dist = dist
+                    move = nbr_loc
+        else: # go to closest bottleneck
+            nbrs.sort(key=lambda tup: tup[1]['distB'])
+            loc, attrs = nbrs[0]
+            return loc
+
+        return move
+                
+        # max_people = -1
+        # dir = None
+
+        # for nbr_loc, attrs in nbrs:
+        #     if nbr_loc in fov:
+        #         people_count = len([person for person in fov if person[0] == nbr_loc])
+        #         if people_count > max_people:
+        #             max_people = people_count
+        #             dir = nbr_loc
+
+        # return dir
 
 
-    def move(self, nbrs, fov, loc, rv=None):
+    def move(self, nbrs, fov, loc_max_people, loc, rv=None):
         '''
         when this person has finished their current movement, we must schedule
         the next one
@@ -105,47 +127,53 @@ class Person:
         safe_nbrs = [(loc, attrs) for loc, attrs in nbrs if not (attrs['G'] or attrs['W'])]
         if not safe_nbrs:
             return None
-
-        # Check if the person sees the door
-        if any(fov_loc in self.graph and self.graph[fov_loc]['D'] for fov_loc in fov):
-            # Stop following and head towards the closest exit
+        
+        loc = None
+        if self.strategy == 1:
+            loc = self.followPeople(safe_nbrs, fov, loc_max_people)
+        else: 
             loc = self.closestExit(safe_nbrs)
-        else:
-            # Look for a bottleneck and a safe space if no people are around
-            loc = self.followPeople(safe_nbrs, fov)
-            if loc is None:
-                # Get all the bottleneck and safe space locations within the field of vision
-                all_bottlenecks = [loc for loc, attrs in self.graph.items() if attrs['B']]
-                all_safe_spaces = [loc for loc, attrs in self.graph.items() if attrs['S']]
 
-                # Calculate distances to bottleneck and safe space locations in the entire graph
-                bottlenecks = [(loc, self.graph[loc]['distB']) for loc in all_bottlenecks if 'distB' in self.graph[loc]]
-                safe_spaces = [(loc, self.graph[loc]['distS']) for loc in all_safe_spaces if 'distS' in self.graph[loc]]
+        # # Check if the person sees the door
+        # if any(fov_loc in self.graph and self.graph[fov_loc]['D'] for fov_loc in fov):
+        #     # Stop following and head towards the closest exit
+        #     loc = self.closestExit(safe_nbrs)
+        # else:
+        #     # Look for a bottleneck and a safe space if no people are around
+        #     loc = self.followPeople(safe_nbrs, fov)
+        #     if loc is None:
+        #         # Get all the bottleneck and safe space locations within the field of vision
+        #         all_bottlenecks = [loc for loc, attrs in self.graph.items() if attrs['B']]
+        #         all_safe_spaces = [loc for loc, attrs in self.graph.items() if attrs['S']]
 
-                # Find the closest bottleneck among all bottleneck locations
-                min_dist_b = float('inf')
-                closest_bottleneck = None
-                for loc, dist in bottlenecks:
-                    if dist < min_dist_b:
-                        min_dist_b = dist
-                        closest_bottleneck = loc
+        #         # Calculate distances to bottleneck and safe space locations in the entire graph
+        #         bottlenecks = [(loc, self.graph[loc]['distB']) for loc in all_bottlenecks if 'distB' in self.graph[loc]]
+        #         safe_spaces = [(loc, self.graph[loc]['distS']) for loc in all_safe_spaces if 'distS' in self.graph[loc]]
 
-                # If no bottleneck found, find the closest safe space among all safe space locations
-                if closest_bottleneck is None:
-                    min_dist_s = float('inf')
-                    closest_safe_space = None
-                    for loc, dist in safe_spaces:
-                        if dist < min_dist_s:
-                            min_dist_s = dist
-                            closest_safe_space = loc
+        #         # Find the closest bottleneck among all bottleneck locations
+        #         min_dist_b = float('inf')
+        #         closest_bottleneck = None
+        #         for loc, dist in bottlenecks:
+        #             if dist < min_dist_b:
+        #                 min_dist_b = dist
+        #                 closest_bottleneck = loc
 
-                if closest_bottleneck is not None:
-                    loc = closest_bottleneck
-                elif closest_safe_space is not None:
-                    loc = closest_safe_space
+        #         # If no bottleneck found, find the closest safe space among all safe space locations
+        #         if closest_bottleneck is None:
+        #             min_dist_s = float('inf')
+        #             closest_safe_space = None
+        #             for loc, dist in safe_spaces:
+        #                 if dist < min_dist_s:
+        #                     min_dist_s = dist
+        #                     closest_safe_space = loc
+
+        #         if closest_bottleneck is not None:
+        #             loc = closest_bottleneck
+        #         elif closest_safe_space is not None:
+        #             loc = closest_safe_space
 
         # Update the location history
-        self.loc_history.append(self.loc)
+        # self.loc_history.append(self.loc)
 
         self.loc = loc
 
