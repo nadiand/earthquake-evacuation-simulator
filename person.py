@@ -29,10 +29,6 @@ class Person:
     def __init__(self, id, rate:float=1.0, loc:tuple=None, strategy:int=0, scaredness:int=0, graph=None):
         '''
         constructor method
-        ---
-        rate
-        strategy
-        loc
         '''
         self.id = id
         self.rate = rate
@@ -47,7 +43,7 @@ class Person:
         # find the neighbour that is the shortest distance from the door
         nbrs.sort(key=lambda tup: tup[1]['distS'])
         ind = 0
-        loc, attrs = nbrs[ind]
+        loc, _ = nbrs[ind]
         for location, attributes in nbrs:
             if not (attributes['D'] or attributes['R']):
                 loc = location
@@ -87,29 +83,17 @@ class Person:
         shortest_dist = float('inf')
         # find direction to loc with the most people
         if loc_max_people is not None:
-            for nbr_loc, attrs in nbrs:
+            for nbr_loc, _ in nbrs:
                 dist = math.dist(nbr_loc, loc_max_people)
                 if dist < shortest_dist:
                     shortest_dist = dist
                     move = nbr_loc
         else: # go to closest bottleneck
             nbrs.sort(key=lambda tup: tup[1]['distB'])
-            loc, attrs = nbrs[0]
+            loc, _ = nbrs[0]
             return loc
 
         return move
-                
-        # max_people = -1
-        # dir = None
-
-        # for nbr_loc, attrs in nbrs:
-        #     if nbr_loc in fov:
-        #         people_count = len([person for person in fov if person[0] == nbr_loc])
-        #         if people_count > max_people:
-        #             max_people = people_count
-        #             dir = nbr_loc
-
-        # return dir
 
 
     def move(self, nbrs, fov, loc_max_people, loc, rv=None):
@@ -133,47 +117,6 @@ class Person:
             loc = self.followPeople(safe_nbrs, fov, loc_max_people)
         else: 
             loc = self.closestExit(safe_nbrs)
-
-        # # Check if the person sees the door
-        # if any(fov_loc in self.graph and self.graph[fov_loc]['D'] for fov_loc in fov):
-        #     # Stop following and head towards the closest exit
-        #     loc = self.closestExit(safe_nbrs)
-        # else:
-        #     # Look for a bottleneck and a safe space if no people are around
-        #     loc = self.followPeople(safe_nbrs, fov)
-        #     if loc is None:
-        #         # Get all the bottleneck and safe space locations within the field of vision
-        #         all_bottlenecks = [loc for loc, attrs in self.graph.items() if attrs['B']]
-        #         all_safe_spaces = [loc for loc, attrs in self.graph.items() if attrs['S']]
-
-        #         # Calculate distances to bottleneck and safe space locations in the entire graph
-        #         bottlenecks = [(loc, self.graph[loc]['distB']) for loc in all_bottlenecks if 'distB' in self.graph[loc]]
-        #         safe_spaces = [(loc, self.graph[loc]['distS']) for loc in all_safe_spaces if 'distS' in self.graph[loc]]
-
-        #         # Find the closest bottleneck among all bottleneck locations
-        #         min_dist_b = float('inf')
-        #         closest_bottleneck = None
-        #         for loc, dist in bottlenecks:
-        #             if dist < min_dist_b:
-        #                 min_dist_b = dist
-        #                 closest_bottleneck = loc
-
-        #         # If no bottleneck found, find the closest safe space among all safe space locations
-        #         if closest_bottleneck is None:
-        #             min_dist_s = float('inf')
-        #             closest_safe_space = None
-        #             for loc, dist in safe_spaces:
-        #                 if dist < min_dist_s:
-        #                     min_dist_s = dist
-        #                     closest_safe_space = loc
-
-        #         if closest_bottleneck is not None:
-        #             loc = closest_bottleneck
-        #         elif closest_safe_space is not None:
-        #             loc = closest_safe_space
-
-        # Update the location history
-        # self.loc_history.append(self.loc)
 
         self.loc = loc
 

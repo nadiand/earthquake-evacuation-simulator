@@ -8,13 +8,9 @@ from random import Random
 class Plotter:
 
     def __init__(self):
-        '''
-        '''
         plt.ion()
 
     def draw_grid(self, gdata):
-        '''
-        '''
         r, c = len(gdata), len(gdata[0])
 
         # create discrete colormap
@@ -33,8 +29,6 @@ class Plotter:
 
 
     def draw_people(self, x=[], y=[], c=[]):
-        '''
-        '''
         #                               alive      ded    safe    unknown
         cmap = colors.ListedColormap(['blue', '#2b0000', 'darkgreen', 'yellow'])
         bounds = [-.5, .5, 1.5, 2.5, 3.5]
@@ -44,8 +38,6 @@ class Plotter:
 
 
     def visualize(self, graph={(3,4): {'F': 1}}, people=[], delay=.01):
-        '''
-        '''
 
         # an arbitrary assignment of integers for each of the attributes for our
         # colormap

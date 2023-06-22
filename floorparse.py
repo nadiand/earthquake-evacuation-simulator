@@ -42,8 +42,6 @@ class FloorParser:
 
 
     def tostr(self, graph):
-        '''
-        '''
         r, c = 0, 0
         for loc, attrs in graph.items():
             r = max(r, loc[0])
@@ -54,7 +52,6 @@ class FloorParser:
         for r_ in range(r):
             for c_ in range(c):
                 sq = graph[(r_, c_)]
-                # this =
                 att = ','.join([a for a in sq if a in 'WSBFNPRGD' and sq[a]])
                 s += '{:>4}'.format(att)
             s += '\n'

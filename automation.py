@@ -14,7 +14,3 @@ if __name__ == '__main__':
     follower_rate = float(sys.argv[2])
     scaredness_rate = float(sys.argv[3])
     main(nr_runs, follower_rate, scaredness_rate)
-    
-
-
-
