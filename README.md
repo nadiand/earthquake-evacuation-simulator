@@ -1,16 +1,19 @@
-# agent-based building evacuation simulation
+# Effect of Different Behaviours On Survival During Earthquake Evacuation
+Authors: Leah Heil, Nadezhda Dobreva, Megha Soni
 
-this simple simulation program simulates a moving danger situation (e.g., fire) 
-and people in a confined space trying to escape away from danger to get to safe zone(s).
-additional constraints are modeled as queues, where a limited number of people can pass at once.
+This repository contains the code associated with our paper titled "Effect of Different Behaviours On Survival During Earthquake Evacuation." Our goal is to answer how different behaviours of people affect their survival rate during an earthquake evacuation. In order to do this, we investigate how survival rates are influenced by different strategies, and the boldness or scaredness displayed when choosing a path to follow. This is done in an environment that is modeled with an initial earthquake and the subsequent collapsing of small parts of the building of Mercator I from the campus of Radboud University, Nijmegen.
 
-final project for [cs326: 'simulation'](http://cs.richmond.edu/courses/index.html)
+You can see our implementation in action here.
 
-see it in action!
+This repository is forked from Aalok Sate's fire evacuation simulator and our code builds on their existing codebase. We would like to express our gratitude to the original authors!
 
-![action](https://i.imgur.com/JsQBlWi.png)
+### Model
+---
+We model the floor plan as a CA. It is a 2D grid, the cells of which can have one of 7 types: normal (N), wall (W), door/bottleneck (B), safe zone (S), risky (R), dangerous (D), or grade (G). Example floor plans (i.e. the ones used in our simulations) are included in the `\in` folder. Rules for how the different cells get updated are defined in the `evacuate.py` file. The people are modeled using an agent-based model. The agents have different attributes (speed, strategy and boldness) and their goal is to get to the safe zone by moving between adjacent cells. The behaviour of the agents is defined in the `person.py` file.
 
-Usage
+The simulation can run for a specified max time or until everyone escapes, which allows us to study the survival rate, percent of people out of danger, mean escape time, etc.
+
+### Usage
 ---
 ```
 usage: evacuate.py [-h] [-i INPUT] [-n NUMPEOPLE] [-r RANDOM_STATE]
@@ -50,51 +53,11 @@ optional arguments:
                         disallow graphics? (default: false)
                         
   -v, --verbose         show excessive output? (default: false)
+  -S SCAREDNESS, --scaredness_rate SCAREDNESS
+			number of people who are scared to walk through danger
+  -F FOLLOWER, --follower_rate FOLLOWER
+			number of people who have the follower strategy
+  -I ID, --run_id ID
+			keeps track of the run id
                          
 ```
-
-### Sample output
-The goal of the program is to run simulations and output useful statistics
-about the simulations, in a manner that helps understand the effects of
-various parameters the simulation is called with, on the outcome.
-```
-STATS
-	 total # people .......................................... 32
-	 # people safe ........................................... 32
-	 # people dead ............................................ 0
-	 # people gravely injured ................................. 0
-
-	 average time to safe ................................ 10.088
-```
-
-
-Model
----
-We model a floor plan as a 2D grid. A cell neighbors four other cells (top, bottom, left, right).
-Each cell has attributes: it can be normal (N), wall (W), bottleneck (B), fire (F), safe zone (S), or people (P).
-You can use a GUI program to design and generate input per our specification; 
-visit [this repository](https://github.com/aalok-sathe/egress-floorplan-design). Some sample inputs are available in `in/`.
-
-The goal is for as many people to get to the safe zones, away from danger's reach. 
-To solve this problem, we represent this 2D grid using a graph with nodes and edges between adjacent nodes (neighbors). 
-People may move between adjacent nodes. Each person has their own movement strategy, and implements a move() method that
-returns a location. The actual simulation is agnostic of the implementation of this method, allowing for agent-based
-modeling experiments. In our case, we consider some baseline strategies: a person will choose to move towards the closest safe
-zone with a certain probability, and away from it with the remaining chance. Additionally, agents move at different rates,
-congruent to real-world scenario.
-A bottleneck is any constricted pathway allowing the passage of only a finite amount of persons in unit time. 
-For simplicity, we will consider this limit to be 1. There may be multiple bottlenecks. Exits are ideally bottlenecks, 
-otherwise the simulation would not be meaningful or purposeful.
-
-The simulation may run for a max time T, allowing questions such as survival rate; percent people out of danger, 
-or until everyone escapes, allowing for studying mean escape time, and time after which most people escape after individual
-variability.
-
-
-
-People
----
-- Aalok S
-- Nick B
-- Matthew J
-
