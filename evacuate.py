@@ -27,7 +27,6 @@ from person import Person
 from bottleneck import Bottleneck
 from floorparse import FloorParser
 import numpy as np
-# from pandas import DataFrame
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
@@ -203,7 +202,7 @@ class FireSim:
         self.risky.update(set(risky_locs))
 
         dims = list(self.graph.keys())[-1]
-        dims = np.subtract(dims, (-1,-1)) #TODO fix this
+        dims = np.subtract(dims, (-1,-1))
 
         walls = np.zeros(dims) 
         
@@ -261,8 +260,6 @@ class FireSim:
 
 
     def visualize(self, t):
-        '''
-        '''
         if self.gui:
             self.plotter.visualize(self.graph, self.people, t)
 
@@ -479,20 +476,9 @@ class FireSim:
                 # offset depends on how many people are in the square, to model pushing and obstacles of fallen peeps
                 self.sim.sched(self.update_person, person_ix, offset=num_peeps/p.rate)
 
-        # if self.maxtime and self.sim.now >= self.maxtime:
-        #     # Mark the remaining alive people as waiting for rescue
-        #     for p in self.people:
-        #         if p.alive and not p.safe:
-        #             p.waiting_for_rescue = True
-        #             self.numwaiting += 1 
-        #     return
-
         if (1+person_ix) % int(self.numpeople**.5) == 0:
             self.visualize(t=self.animation_delay/len(self.people)/2)
 
-        # self.sim.show_calendar()
-
-    
 
     def simulate(self, maxtime=None, spread_fire=False, gui=False):
         '''
@@ -506,16 +492,11 @@ class FireSim:
         # set initial movements of all the people
         for i, p in enumerate(self.people):
             loc = tuple(p.loc)
-            square = self.graph[loc]
-            nbrs = square['nbrs']
             self.sim.sched(self.update_person, i, offset=1/p.rate+10)
 
         # updates fire initially
         if spread_fire:
-            self.sim.sched(self.update,
-                           offset=1)
-            # self.sim.sched(self.update_fire,
-            #                offset=1) #len(self.graph)/max(1, len(self.fires)))
+            self.sim.sched(self.update, offset=1)
         else:
             print('INFO\t', 'fire won\'t spread around!')
         self.sim.sched(self.update_bottlenecks, offset=self.bottleneck_delay)
@@ -525,9 +506,6 @@ class FireSim:
         # Termination condition: All people are either safe, dead, or waiting for rescue
         while self.numsafe + self.numwaiting + self.numdead < self.numpeople:
             self.sim.step()
-            # print(self.numsafe, self.numwaiting, self.numdead, self.numpeople)
-
-        # self.sim.run()
 
         self.avg_exit /= max(self.numsafe, 1)
 
@@ -565,7 +543,6 @@ class FireSim:
         printstats('# people died from falling debris', numdied)
         print()
         print('INDIVIDUALS')
-        # printstats('total simulation time', '{:.3f}'.format(self.sim.now))
         if self.avg_exit:
             printstats('average time to safe', '{:.3f}'.format(self.avg_exit))
         else:
@@ -580,7 +557,6 @@ class FireSim:
             str(round(p.rate, 3)) + " " + str(p.injured) + " " + str(round(p.strategy, 3)) + " " + \
             str(p.scaredness) + " " + str(p.waiting_for_rescue) + "\n"
 
-        # print(self.parser.tostr(self.graph))
         self.visualize(4)
 
         return results
@@ -633,10 +609,10 @@ def main(raw_args=None):
     loc_strm, strat_strm, rate_strm, pax_strm, fire_strm = streams
 
     location_sampler = loc_strm.choice # used to make initial placement of pax
-    strategy_generator = lambda: strat_strm.uniform(.5, 1) # used to pick move
+    strategy_generator = lambda: strat_strm.uniform(.5, 1) 
     rate_generator = lambda: rate_strm.uniform(.9, 1.1)
-    person_mover = lambda: pax_strm.uniform() #
-    fire_mover = lambda a: fire_strm.choice(a) #
+    person_mover = lambda: pax_strm.uniform() 
+    fire_mover = lambda a: fire_strm.choice(a) 
 
     # create an instance of Floor
     floor = FireSim(args.input, args.numpeople, location_sampler,
@@ -647,7 +623,6 @@ def main(raw_args=None):
                     scaredness_rate=args.scaredness_rate, follower_rate=args.follower_rate, 
                     run_id=args.run_id)
 
-    # floor.visualize(t=5000)
     # call the simulate method to run the actual simulation
     floor.simulate(maxtime=args.max_time, spread_fire=not args.no_spread_fire,
                    gui=not args.no_graphical_output)
