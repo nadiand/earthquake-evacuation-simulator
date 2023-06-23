@@ -3,7 +3,7 @@ Authors: Leah Heil, Nadezhda Dobreva, Megha Soni
 
 This repository contains the code associated with our paper titled "Effect of Different Behaviours On Survival During Earthquake Evacuation." Our goal is to answer how different behaviours of people affect their survival rate during an earthquake evacuation. In order to do this, we investigate how survival rates are influenced by different strategies, and the boldness or scaredness displayed when choosing a path to follow. This is done in an environment that is modeled with an initial earthquake and the subsequent collapsing of small parts of the building of Mercator I from the campus of Radboud University, Nijmegen.
 
-You can see our implementation in action here.
+You can see our implementation in action here: https://drive.google.com/file/d/1s9tiJ3ty_MvjouDp-gOVv4GrHQ58uHxj/view?usp=sharing
 
 This repository is forked from Aalok Sate's fire evacuation simulator and our code builds on their existing codebase. We would like to express our gratitude to the original authors!
 
@@ -19,6 +19,7 @@ The simulation can run for a specified max time or until everyone escapes, which
 usage: evacuate.py [-h] [-i INPUT] [-n NUMPEOPLE] [-r RANDOM_STATE]
                    [-t MAX_TIME] [-f] [-g] [-v] [-d FIRE_RATE]
                    [-b BOTTLENECK_DELAY] [-a ANIMATION_DELAY]
+		   [-S SCAREDNESS] [-F FOLLOWER]
 
 optional arguments:
   -h, --help            show this help message and exit
