@@ -19,6 +19,7 @@ The simulation can run for a specified max time or until everyone escapes, which
 usage: evacuate.py [-h] [-i INPUT] [-n NUMPEOPLE] [-r RANDOM_STATE]
                    [-t MAX_TIME] [-f] [-g] [-v] [-d FIRE_RATE]
                    [-b BOTTLENECK_DELAY] [-a ANIMATION_DELAY]
+		   [-S SCAREDNESS] [-F FOLLOWER]
 
 optional arguments:
   -h, --help            show this help message and exit
