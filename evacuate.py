@@ -25,7 +25,7 @@ import numpy as np
 
 pp = pprint.PrettyPrinter(indent=4).pprint
 
-class FireSim:
+class EarthquakeSim:
     sim = None
     graph = None # dictionary (x,y) --> attributes
     gui = False
@@ -35,7 +35,7 @@ class FireSim:
     def __init__(self, input, n, location_sampler=random.sample,
                  strategy_generator=lambda: random.uniform(.5, 1.),
                  rate_generator=lambda: abs(random.normalvariate(1, .5)),
-                 person_mover=random.uniform, fire_mover=random.sample,
+                 person_mover=random.uniform,
                  damage_rate=2, bottleneck_delay=1, animation_delay=.1,
                  verbose=False, scaredness_rate=0.5, follower_rate=0.2, 
                  run_id=0,
@@ -63,7 +63,6 @@ class FireSim:
         self.strategy_generator = strategy_generator
         self.rate_generator = rate_generator
         self.person_mover = person_mover
-        self.fire_mover = fire_mover
         
         self.damage_rate = damage_rate
         self.bottleneck_delay = bottleneck_delay
@@ -75,7 +74,6 @@ class FireSim:
 
         self.people = []
         self.bottlenecks = dict()
-        self.fires = set()
         self.graves = set()
         self.risky = set()
 
@@ -115,10 +113,10 @@ class FireSim:
 
     def precompute(self):
         '''
-        precompute stats on the graph, e.g. nearest safe zone, nearest fire
+        precompute stats on the graph, e.g. nearest safe zone, nearest bottleneck
         '''
         
-        # for each location, we do breath first search to find the nearest safe zone (distS) and the nearest fire zone (distF).
+        # for each location, we do breath first search to find the nearest safe zone (distS) and the nearest bottleneck (distB).
         for loc in self.graph:
             self.graph[loc]['distS'] = self.bfs('S', loc)
             self.graph[loc]['distB'] = self.bfs('B', loc)
@@ -196,8 +194,6 @@ class FireSim:
                     self.r, self.c, len(self.people)
                   ),
               'initialized {} bottleneck(s)'.format(len(self.bottlenecks)),
-              'detected {} fire zone(s)'.format(len([loc for loc in self.graph
-                                                     if self.graph[loc]['F']])),
               '\ngood luck escaping!', '='*79, 'LOGS', sep='\n'
              )
 
@@ -426,7 +422,7 @@ class FireSim:
             p.exit_time = self.sim.now
             self.numdead += 1
             if self.verbose:
-                print('{:>6.2f}\tPerson {:>3} at {} got trapped in fire'.format(
+                print('{:>6.2f}\tPerson {:>3} at {} got trapped'.format(
                                                                    self.sim.now,
                                                                    p.id, p.loc))
             return
@@ -539,7 +535,7 @@ class FireSim:
 
 def main(raw_args=None):
     '''
-    driver method for this file. the firesim class can be used via imports as
+    driver method for this file. the EarthquakeSim class can be used via imports as
     well, but this driver file provides a comprehensive standalone interface
     to the simulation
     '''
@@ -558,13 +554,13 @@ def main(raw_args=None):
                              ' beginning movement before this will be assumed'
                              ' to have moved away sufficiently (safe)')
     parser.add_argument('-f', '--no_spread_damage', action='store_true',
-                        help='disallow fire to spread around?')
+                        help='disallow damage to spread around?')
     parser.add_argument('-g', '--no_graphical_output', action='store_true',
                         help='disallow graphics?')
     parser.add_argument('-o', '--output', action='store_true',
                         help='show excessive output?')
     parser.add_argument('-d', '--damage_rate', type=float, default=2,
-                        help='rate of spread of fire (this is the exponent)')
+                        help='rate of spread of damage (this is the exponent)')
     parser.add_argument('-b', '--bottleneck_delay', type=float, default=1,
                         help='how long until the next person may leave the B')
     parser.add_argument('-a', '--animation_delay', type=float, default=1,
@@ -580,19 +576,18 @@ def main(raw_args=None):
     print('commandline arguments:', args, '\n')
 
     # set up random streams
-    streams = [np.random.Generator(PCG64(args.random_state, i)) for i in range(5)]
-    loc_strm, strat_strm, rate_strm, pax_strm, fire_strm = streams
+    streams = [np.random.Generator(PCG64(args.random_state, i)) for i in range(4)]
+    loc_strm, strat_strm, rate_strm, pax_strm = streams
 
     location_sampler = loc_strm.choice # used to make initial placement of pax
     strategy_generator = lambda: strat_strm.uniform(.5, 1) 
     rate_generator = lambda: rate_strm.uniform(.9, 1.1)
     person_mover = lambda: pax_strm.uniform() 
-    fire_mover = lambda a: fire_strm.choice(a) 
 
     # create an instance of Floor
-    floor = FireSim(args.input, args.numpeople, location_sampler,
+    floor = EarthquakeSim(args.input, args.numpeople, location_sampler,
                     strategy_generator, rate_generator, person_mover,
-                    fire_mover, damage_rate=args.damage_rate,
+                    damage_rate=args.damage_rate,
                     bottleneck_delay=args.bottleneck_delay,
                     animation_delay=args.animation_delay, verbose=args.output, 
                     scaredness_rate=args.scaredness_rate, follower_rate=args.follower_rate, 
